@@ -56,7 +56,7 @@
       width: 100%;
       height: 100dvh;
       overflow: hidden;
-      background-color: var(--ctp-base);
+      background-color: var(--ctp-crust);
       color: var(--ctp-text);
       font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, sans-serif;
       font-size: 15px;
@@ -72,7 +72,8 @@
       pointer-events: none;
       background:
         radial-gradient(circle at 14% 8%, rgba(203, 166, 247, 0.09), transparent 44%),
-        radial-gradient(circle at 88% 92%, rgba(137, 180, 250, 0.08), transparent 46%);
+        radial-gradient(circle at 88% 92%, rgba(137, 180, 250, 0.08), transparent 46%),
+        var(--ctp-base);
       z-index: 0;
     }
 
@@ -199,23 +200,39 @@
       color: var(--ctp-mauve);
     }
 
+    /* Контейнер видеоплеера */
     .player-wrapper {
       position: relative;
       flex-shrink: 0;
       width: 100%;
       aspect-ratio: 16 / 9;
       max-height: 36dvh;
-      background: var(--ctp-crust);
+      background: #000000;
       border-bottom: 1px solid var(--glass-border);
       overflow: hidden;
+      touch-action: manipulation;
     }
 
+    /* Полноэкранный режим: нативный Fullscreen API + fallback класс для iOS/WebView */
     .player-wrapper:fullscreen,
-    .player-wrapper:-webkit-full-screen {
-      max-height: none;
-      aspect-ratio: auto;
-      width: 100vw;
-      height: 100vh;
+    .player-wrapper:-webkit-full-screen,
+    .player-wrapper.is-fullscreen {
+      position: fixed !important;
+      inset: 0 !important;
+      width: 100% !important;
+      height: 100% !important;
+      max-width: none !important;
+      max-height: none !important;
+      aspect-ratio: auto !important;
+      border: none !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      background: #000000 !important;
+      z-index: 9999 !important;
+    }
+
+    .player-wrapper::backdrop {
+      background: #000000;
     }
 
     video#videoPlayer {
@@ -223,7 +240,7 @@
       height: 100%;
       object-fit: contain;
       display: block;
-      background: #0d0d14;
+      background: #000000;
     }
 
     .player-empty {
@@ -280,7 +297,41 @@
       cursor: pointer;
     }
 
+    .player-wrapper:fullscreen .unmute-badge,
+    .player-wrapper:-webkit-full-screen .unmute-badge,
+    .player-wrapper.is-fullscreen .unmute-badge {
+      top: max(14px, var(--safe-top));
+      right: max(16px, var(--safe-right));
+    }
+
     .unmute-badge.visible { display: inline-flex; }
+
+    /* Индикатор двойного тапа для перемотки */
+    .seek-ripple {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 14;
+      padding: 10px 14px;
+      border-radius: 999px;
+      background: rgba(24, 24, 37, 0.72);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid var(--glass-border-accent);
+      color: var(--ctp-text);
+      font-size: 12px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+    }
+
+    .seek-ripple.left { left: 14%; }
+    .seek-ripple.right { right: 14%; }
+    .seek-ripple.show { opacity: 1; }
 
     .player-controls {
       position: absolute;
@@ -292,13 +343,23 @@
       padding: 10px 12px;
       background: linear-gradient(
         180deg,
-        rgba(17, 17, 27, 0.72) 0%,
-        rgba(17, 17, 27, 0.12) 42%,
-        rgba(17, 17, 27, 0.15) 60%,
-        rgba(17, 17, 27, 0.84) 100%
+        rgba(0, 0, 0, 0.72) 0%,
+        rgba(0, 0, 0, 0.08) 38%,
+        rgba(0, 0, 0, 0.08) 62%,
+        rgba(0, 0, 0, 0.82) 100%
       );
       opacity: 1;
       transition: opacity 0.25s ease;
+    }
+
+    /* Учёт чёлки / вырезов экрана и системной полосы жестов в полноэкранном режиме */
+    .player-wrapper:fullscreen .player-controls,
+    .player-wrapper:-webkit-full-screen .player-controls,
+    .player-wrapper.is-fullscreen .player-controls {
+      padding-top: max(14px, var(--safe-top));
+      padding-bottom: max(16px, var(--safe-bottom));
+      padding-left: max(18px, var(--safe-left));
+      padding-right: max(18px, var(--safe-right));
     }
 
     .player-controls.hidden-ui {
@@ -315,9 +376,9 @@
 
     .video-title-chip {
       max-width: 78%;
-      padding: 4px 10px;
-      border-radius: 8px;
-      background: rgba(24, 24, 37, 0.62);
+      padding: 5px 11px;
+      border-radius: 9px;
+      background: rgba(24, 24, 37, 0.65);
       backdrop-filter: blur(10px);
       -webkit-backdrop-filter: blur(10px);
       border: 1px solid var(--glass-border);
@@ -333,15 +394,15 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 22px;
+      gap: 26px;
     }
 
     .ctrl-circle {
-      width: 40px;
-      height: 40px;
+      width: 42px;
+      height: 42px;
       border-radius: 50%;
       border: 1px solid var(--glass-border);
-      background: rgba(24, 24, 37, 0.65);
+      background: rgba(24, 24, 37, 0.68);
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
       color: var(--ctp-text);
@@ -354,12 +415,12 @@
     .ctrl-circle:active { transform: scale(0.92); }
 
     .ctrl-circle.play-main {
-      width: 52px;
-      height: 52px;
-      background: linear-gradient(135deg, rgba(203, 166, 247, 0.34), rgba(137, 180, 250, 0.3));
+      width: 54px;
+      height: 54px;
+      background: linear-gradient(135deg, rgba(203, 166, 247, 0.36), rgba(137, 180, 250, 0.32));
       border-color: var(--glass-border-accent);
       color: #ffffff;
-      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
     }
 
     .controls-bottom {
@@ -371,7 +432,7 @@
     .scrubber-wrap {
       position: relative;
       width: 100%;
-      height: 20px;
+      height: 22px;
       display: flex;
       align-items: center;
       cursor: pointer;
@@ -383,7 +444,7 @@
       width: 100%;
       height: 4px;
       border-radius: 999px;
-      background: rgba(205, 214, 244, 0.2);
+      background: rgba(205, 214, 244, 0.24);
       overflow: visible;
     }
 
@@ -401,8 +462,8 @@
       position: absolute;
       top: 50%;
       left: 0%;
-      width: 13px;
-      height: 13px;
+      width: 14px;
+      height: 14px;
       border-radius: 50%;
       background: var(--ctp-text);
       border: 2px solid var(--ctp-mauve);
@@ -414,7 +475,7 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      font-size: 11px;
+      font-size: 11.5px;
       font-variant-numeric: tabular-nums;
       color: var(--ctp-subtext1);
     }
@@ -426,11 +487,11 @@
     }
 
     .mini-ctrl-btn {
-      width: 28px;
-      height: 28px;
+      width: 30px;
+      height: 30px;
       border-radius: 8px;
-      border: 1px solid transparent;
-      background: rgba(24, 24, 37, 0.5);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(24, 24, 37, 0.58);
       color: var(--ctp-text);
       display: grid;
       place-items: center;
@@ -438,6 +499,33 @@
     }
 
     .mini-ctrl-btn:active { border-color: var(--glass-border-accent); }
+
+    /* Панель быстрых реакций внутри полноэкранного плеера */
+    .fs-reactions-strip {
+      display: none;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .player-wrapper:fullscreen .fs-reactions-strip,
+    .player-wrapper:-webkit-full-screen .fs-reactions-strip,
+    .player-wrapper.is-fullscreen .fs-reactions-strip {
+      display: flex;
+    }
+
+    .fs-react-btn {
+      width: 30px;
+      height: 30px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(24, 24, 37, 0.58);
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      transition: transform 0.12s ease;
+    }
+
+    .fs-react-btn:active { transform: scale(0.88); }
 
     .floating-reactions-layer {
       position: absolute;
@@ -449,16 +537,16 @@
 
     .floating-reaction {
       position: absolute;
-      bottom: 14px;
-      width: 36px;
-      height: 36px;
+      bottom: 18px;
+      width: 38px;
+      height: 38px;
       border-radius: 50%;
       display: grid;
       place-items: center;
-      background: rgba(24, 24, 37, 0.62);
+      background: rgba(24, 24, 37, 0.65);
       backdrop-filter: blur(8px);
       -webkit-backdrop-filter: blur(8px);
-      border: 1px solid rgba(255, 255, 255, 0.14);
+      border: 1px solid rgba(255, 255, 255, 0.16);
       box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
       animation: floatUpReaction var(--dur, 2.2s) cubic-bezier(0.22, 1, 0.36, 1) forwards;
       will-change: transform, opacity;
@@ -466,9 +554,9 @@
 
     @keyframes floatUpReaction {
       0% { opacity: 0; transform: translate3d(0, 12px, 0) scale(0.45) rotate(0deg); }
-      16% { opacity: 1; transform: translate3d(var(--drift-mid, 8px), -24px, 0) scale(1.12) rotate(var(--rot-mid, -8deg)); }
+      16% { opacity: 1; transform: translate3d(var(--drift-mid, 8px), -28px, 0) scale(1.12) rotate(var(--rot-mid, -8deg)); }
       70% { opacity: 0.95; }
-      100% { opacity: 0; transform: translate3d(var(--drift-end, -14px), -175px, 0) scale(0.92) rotate(var(--rot-end, 12deg)); }
+      100% { opacity: 0; transform: translate3d(var(--drift-end, -14px), -220px, 0) scale(0.92) rotate(var(--rot-end, 12deg)); }
     }
 
     .chat-section {
@@ -934,6 +1022,9 @@
       <video id="videoPlayer" playsinline webkit-playsinline preload="metadata"></video>
       <div id="floatingReactionsLayer" class="floating-reactions-layer" aria-hidden="true"></div>
 
+      <div id="seekRippleLeft" class="seek-ripple left">−10 сек</div>
+      <div id="seekRippleRight" class="seek-ripple right">+10 сек</div>
+
       <button id="unmuteBadge" class="unmute-badge" type="button">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
@@ -959,7 +1050,7 @@
         <div class="controls-top">
           <div id="videoTitleChip" class="video-title-chip">Видео</div>
           <button id="fullscreenBtn" class="mini-ctrl-btn" type="button" aria-label="Во весь экран">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <svg id="fullscreenIcon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <polyline points="15 3 21 3 21 9"></polyline>
               <polyline points="9 21 3 21 3 15"></polyline>
               <line x1="21" y1="3" x2="14" y2="10"></line>
@@ -1001,6 +1092,27 @@
           <div class="controls-meta-row">
             <span id="timeDisplay">00:00 / 00:00</span>
             <div class="controls-right-btns">
+              <div class="fs-reactions-strip" aria-label="Реакции в полноэкранном режиме">
+                <button class="fs-react-btn reaction-trigger" type="button" data-reaction="heart" aria-label="Сердце">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#f38ba8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"></path>
+                  </svg>
+                </button>
+                <button class="fs-react-btn reaction-trigger" type="button" data-reaction="flame" aria-label="Огонь">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fab387" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"></path>
+                  </svg>
+                </button>
+                <button class="fs-react-btn reaction-trigger" type="button" data-reaction="smile" aria-label="Улыбка">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#f9e2af" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <path d="M8 14s1.5 2 4 2 4-2 4-2"></path>
+                    <line x1="9" y1="9" x2="9.01" y2="9"></line>
+                    <line x1="15" y1="9" x2="15.01" y2="9"></line>
+                  </svg>
+                </button>
+              </div>
+
               <button id="muteToggleBtn" class="mini-ctrl-btn" type="button" aria-label="Звук">
                 <svg id="muteIcon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
@@ -1018,19 +1130,19 @@
       <div id="chatMessages" class="chat-messages"></div>
 
       <div class="reactions-bar" aria-label="Быстрые реакции">
-        <button class="reaction-btn" type="button" data-reaction="heart" aria-label="Сердце">
+        <button class="reaction-btn reaction-trigger" type="button" data-reaction="heart" aria-label="Сердце">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f38ba8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"></path>
           </svg>
         </button>
 
-        <button class="reaction-btn" type="button" data-reaction="flame" aria-label="Огонь">
+        <button class="reaction-btn reaction-trigger" type="button" data-reaction="flame" aria-label="Огонь">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fab387" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"></path>
           </svg>
         </button>
 
-        <button class="reaction-btn" type="button" data-reaction="smile" aria-label="Улыбка">
+        <button class="reaction-btn reaction-trigger" type="button" data-reaction="smile" aria-label="Улыбка">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f9e2af" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="12" cy="12" r="10"></circle>
             <path d="M8 14s1.5 2 4 2 4-2 4-2"></path>
@@ -1039,7 +1151,7 @@
           </svg>
         </button>
 
-        <button class="reaction-btn" type="button" data-reaction="sparkles" aria-label="Восторг">
+        <button class="reaction-btn reaction-trigger" type="button" data-reaction="sparkles" aria-label="Восторг">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#cba6f7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"></path>
             <path d="M5 3v4"></path>
@@ -1049,14 +1161,14 @@
           </svg>
         </button>
 
-        <button class="reaction-btn" type="button" data-reaction="thumbs-up" aria-label="Класс">
+        <button class="reaction-btn reaction-trigger" type="button" data-reaction="thumbs-up" aria-label="Класс">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a6e3a1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M7 10v12"></path>
             <path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2h0a3.13 3.13 0 0 1 3 3.88Z"></path>
           </svg>
         </button>
 
-        <button class="reaction-btn" type="button" data-reaction="zap" aria-label="Молния">
+        <button class="reaction-btn reaction-trigger" type="button" data-reaction="zap" aria-label="Молния">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#89b4fa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
           </svg>
@@ -1183,7 +1295,7 @@
       const PEER_ID_PRIMARY = "ami-watch-1";
       const PEER_ID_SECONDARY = "ami-watch-2";
 
-      /* Собственный PeerJS и TURN сервер на вашем VPS */
+      /* Собственный PeerJS и TURN сервер на VPS */
       const VPS_HOST = "147.45.71.33";
       const PEER_SERVER_CONFIG = {
         host: VPS_HOST,
@@ -1216,6 +1328,7 @@
       const DRIFT_THRESHOLD_SEC = 0.7;
 
       const els = {
+        themeColorMeta: document.querySelector('meta[name="theme-color"]'),
         p2pStatusPill: document.getElementById("p2pStatusPill"),
         p2pStatusText: document.getElementById("p2pStatusText"),
         p2pSlotBadge: document.getElementById("p2pSlotBadge"),
@@ -1224,11 +1337,14 @@
         playerWrapper: document.getElementById("playerWrapper"),
         video: document.getElementById("videoPlayer"),
         floatingLayer: document.getElementById("floatingReactionsLayer"),
+        seekRippleLeft: document.getElementById("seekRippleLeft"),
+        seekRippleRight: document.getElementById("seekRippleRight"),
         unmuteBadge: document.getElementById("unmuteBadge"),
         playerEmpty: document.getElementById("playerEmptyState"),
         playerControls: document.getElementById("playerControls"),
         videoTitleChip: document.getElementById("videoTitleChip"),
         fullscreenBtn: document.getElementById("fullscreenBtn"),
+        fullscreenIcon: document.getElementById("fullscreenIcon"),
         seekBackBtn: document.getElementById("seekBackBtn"),
         playPauseBtn: document.getElementById("playPauseBtn"),
         playPauseIcon: document.getElementById("playPauseIcon"),
@@ -1243,7 +1359,7 @@
         chatMessages: document.getElementById("chatMessages"),
         chatForm: document.getElementById("chatForm"),
         chatInput: document.getElementById("chatInput"),
-        reactionBtns: document.querySelectorAll(".reaction-btn"),
+        reactionTriggers: document.querySelectorAll(".reaction-trigger"),
 
         libraryModal: document.getElementById("libraryModal"),
         refreshLibraryBtn: document.getElementById("refreshLibraryBtn"),
@@ -1278,7 +1394,10 @@
         isApplyingRemote: false,
         remoteLockTimer: null,
         controlsHideTimer: null,
-        isScrubbing: false
+        isScrubbing: false,
+        isPseudoFullscreen: false,
+        lastTapTime: 0,
+        singleTapTimer: null
       };
 
       function loadSavedServerUrl() {
@@ -1338,6 +1457,8 @@
         pause: `<rect x="6" y="4" width="4" height="16" rx="1"></rect><rect x="14" y="4" width="4" height="16" rx="1"></rect>`,
         volumeOn: `<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>`,
         volumeMuted: `<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><line x1="23" y1="9" x2="17" y2="15"></line><line x1="17" y1="9" x2="23" y2="15"></line>`,
+        fsEnter: `<polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line>`,
+        fsExit: `<polyline points="4 14 10 14 10 20"></polyline><polyline points="20 10 14 10 14 4"></polyline><line x1="14" y1="10" x2="21" y2="3"></line><line x1="3" y1="21" x2="10" y2="14"></line>`,
         film: `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect><line x1="7" y1="2" x2="7" y2="22"></line><line x1="17" y1="2" x2="17" y2="22"></line><line x1="2" y1="12" x2="22" y2="12"></line></svg>`,
         sysPlay: `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="6 4 20 12 6 20 6 4"></polygon></svg>`,
         sysPause: `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16" rx="1"></rect><rect x="14" y="4" width="4" height="16" rx="1"></rect></svg>`,
@@ -1912,15 +2033,45 @@
         }, 3000);
       }
 
+      function triggerSeekRipple(direction) {
+        const el = direction < 0 ? els.seekRippleLeft : els.seekRippleRight;
+        el.classList.add("show");
+        clearTimeout(el._hideTimer);
+        el._hideTimer = setTimeout(() => el.classList.remove("show"), 550);
+      }
+
+      /* Обработка одиночного тапа (показ/скрытие UI) и двойного тапа (перемотка ±10 сек) */
       els.playerWrapper.addEventListener("click", (e) => {
         if (!state.currentVideoUrl) return;
         if (e.target.closest("button") || e.target.closest("#scrubberWrap")) return;
 
-        if (els.playerControls.classList.contains("hidden-ui")) {
-          showControlsTemporarily(true);
-        } else {
-          els.playerControls.classList.add("hidden-ui");
+        const now = Date.now();
+        const timeSinceLastTap = now - state.lastTapTime;
+        state.lastTapTime = now;
+
+        if (timeSinceLastTap < 270) {
+          clearTimeout(state.singleTapTimer);
+          const rect = els.playerWrapper.getBoundingClientRect();
+          const tapX = e.clientX - rect.left;
+          if (tapX < rect.width * 0.42) {
+            els.video.currentTime = Math.max(0, (els.video.currentTime || 0) - 10);
+            triggerSeekRipple(-1);
+          } else if (tapX > rect.width * 0.58) {
+            const maxT = Number.isFinite(els.video.duration) ? els.video.duration : Infinity;
+            els.video.currentTime = Math.min(maxT, (els.video.currentTime || 0) + 10);
+            triggerSeekRipple(1);
+          }
+          return;
         }
+
+        clearTimeout(state.singleTapTimer);
+        state.singleTapTimer = setTimeout(() => {
+          if (els.playerControls.classList.contains("hidden-ui")) {
+            showControlsTemporarily(true);
+          } else {
+            els.playerControls.classList.add("hidden-ui");
+          }
+        }, 230);
       });
 
       els.playPauseBtn.addEventListener("click", (e) => {
@@ -1965,20 +2116,94 @@
         updateMuteUI();
       });
 
-      els.fullscreenBtn.addEventListener("click", (e) => {
-        e.stopPropagation();
-        const isFs = document.fullscreenElement || document.webkitFullscreenElement;
-        if (!isFs) {
-          if (els.playerWrapper.requestFullscreen) {
-            els.playerWrapper.requestFullscreen().catch(() => {});
-          } else if (els.video.webkitEnterFullscreen) {
-            els.video.webkitEnterFullscreen();
+      /* Логика полноэкранного режима для мобильных браузеров */
+      function isAnyFullscreenActive() {
+        return Boolean(
+          document.fullscreenElement ||
+          document.webkitFullscreenElement ||
+          state.isPseudoFullscreen
+        );
+      }
+
+      function syncFullscreenUI() {
+        const active = isAnyFullscreenActive();
+        els.playerWrapper.classList.toggle("is-fullscreen", active);
+        els.fullscreenIcon.innerHTML = active ? SVG_ICONS.fsExit : SVG_ICONS.fsEnter;
+        if (els.themeColorMeta) {
+          els.themeColorMeta.setAttribute("content", active ? "#000000" : "#181825");
+        }
+      }
+
+      async function enterMobileFullscreen() {
+        const wrapper = els.playerWrapper;
+        const requestFn = wrapper.requestFullscreen || wrapper.webkitRequestFullscreen;
+
+        if (requestFn) {
+          try {
+            await requestFn.call(wrapper, { navigationUI: "hide" });
+          } catch (err) {
+            try {
+              await requestFn.call(wrapper);
+            } catch (e) {
+              state.isPseudoFullscreen = true;
+            }
           }
         } else {
-          if (document.exitFullscreen) {
-            document.exitFullscreen().catch(() => {});
+          /* Fallback для iOS Safari, где div.requestFullscreen недоступен */
+          state.isPseudoFullscreen = true;
+        }
+
+        syncFullscreenUI();
+
+        if (screen.orientation && screen.orientation.lock) {
+          screen.orientation.lock("landscape").catch(() => {});
+        }
+      }
+
+      async function exitMobileFullscreen() {
+        if (document.fullscreenElement || document.webkitFullscreenElement) {
+          const exitFn = document.exitFullscreen || document.webkitExitFullscreen;
+          if (exitFn) {
+            try {
+              await exitFn.call(document);
+            } catch (e) {}
           }
         }
+        state.isPseudoFullscreen = false;
+        syncFullscreenUI();
+
+        if (screen.orientation && screen.orientation.unlock) {
+          try {
+            screen.orientation.unlock();
+          } catch (e) {}
+        }
+      }
+
+      els.fullscreenBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        if (!isAnyFullscreenActive()) {
+          enterMobileFullscreen();
+        } else {
+          exitMobileFullscreen();
+        }
+        showControlsTemporarily(true);
+      });
+
+      document.addEventListener("fullscreenchange", () => {
+        if (!document.fullscreenElement) {
+          state.isPseudoFullscreen = false;
+          if (screen.orientation && screen.orientation.unlock) {
+            try { screen.orientation.unlock(); } catch (e) {}
+          }
+        }
+        syncFullscreenUI();
+      });
+
+      document.addEventListener("webkitfullscreenchange", () => {
+        if (!document.webkitFullscreenElement) {
+          state.isPseudoFullscreen = false;
+        }
+        syncFullscreenUI();
       });
 
       function scrubToClientX(clientX) {
@@ -2236,8 +2461,9 @@
         sendPeerPacket({ type: "chat", text });
       });
 
-      els.reactionBtns.forEach((btn) => {
-        btn.addEventListener("click", () => {
+      els.reactionTriggers.forEach((btn) => {
+        btn.addEventListener("click", (e) => {
+          e.stopPropagation();
           const key = btn.getAttribute("data-reaction");
           if (!key) return;
           spawnFloatingReaction(key);
