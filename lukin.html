@@ -31,10 +31,9 @@
       --ctp-green: #a6e3a1;
       --ctp-yellow: #f9e2af;
       --ctp-red: #f38ba8;
-      --ctp-peach: #fab387;
 
-      --glass-bg: rgba(24, 24, 37, 0.74);
-      --glass-surface: rgba(49, 50, 68, 0.42);
+      --glass-bg: rgba(24, 24, 37, 0.78);
+      --glass-surface: rgba(49, 50, 68, 0.44);
       --glass-border: rgba(205, 214, 244, 0.09);
       --glass-border-accent: rgba(203, 166, 247, 0.28);
       --glass-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.05);
@@ -77,6 +76,23 @@
       z-index: 0;
     }
 
+    /* Чистый чёрный фон корневых элементов в полноэкранном режиме (убирает серые полосы под чёлкой/вырезом камеры) */
+    html.fs-active,
+    html.fs-active body,
+    html:fullscreen,
+    html:fullscreen body,
+    html:-webkit-full-screen,
+    html:-webkit-full-screen body {
+      background: #000000 !important;
+      background-color: #000000 !important;
+    }
+
+    html.fs-active body::before,
+    html:fullscreen body::before,
+    html:-webkit-full-screen body::before {
+      display: none !important;
+    }
+
     .app-shell {
       position: relative;
       z-index: 1;
@@ -89,10 +105,11 @@
       padding-right: var(--safe-right);
     }
 
+    /* Верхняя панель без лишней иконки бренда */
     .topbar {
       flex-shrink: 0;
-      height: 48px;
-      padding: 0 12px;
+      height: 50px;
+      padding: 0 14px;
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -103,43 +120,17 @@
       box-shadow: var(--glass-highlight);
     }
 
-    .brand {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-weight: 600;
-      font-size: 15px;
-      color: var(--ctp-text);
-    }
-
-    .brand-icon {
-      width: 28px;
-      height: 28px;
-      border-radius: 9px;
-      display: grid;
-      place-items: center;
-      background: linear-gradient(135deg, rgba(203, 166, 247, 0.22), rgba(137, 180, 250, 0.22));
-      border: 1px solid var(--glass-border-accent);
-      color: var(--ctp-mauve);
-    }
-
-    .topbar-actions {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
     .p2p-pill {
-      height: 32px;
-      padding: 0 10px;
+      height: 34px;
+      padding: 0 12px;
       border-radius: 999px;
       display: inline-flex;
       align-items: center;
-      gap: 7px;
+      gap: 8px;
       background: var(--glass-surface);
       border: 1px solid var(--glass-border);
       color: var(--ctp-subtext1);
-      font-size: 12px;
+      font-size: 12.5px;
       font-weight: 600;
       cursor: pointer;
       transition: border-color 0.2s ease, transform 0.15s ease;
@@ -156,7 +147,7 @@
       transition: background-color 0.25s ease, box-shadow 0.25s ease;
     }
 
-    .p2p-pill.connected { border-color: rgba(166, 227, 161, 0.26); }
+    .p2p-pill.connected { border-color: rgba(166, 227, 161, 0.28); }
     .p2p-pill.connected .status-dot {
       background: var(--ctp-green);
       box-shadow: 0 0 10px rgba(166, 227, 161, 0.75);
@@ -164,7 +155,7 @@
     .p2p-pill.connecting .status-dot { animation: pulseDot 1.4s infinite ease-in-out; }
 
     .p2p-slot {
-      padding: 1px 5px;
+      padding: 1px 6px;
       border-radius: 6px;
       background: rgba(203, 166, 247, 0.14);
       color: var(--ctp-mauve);
@@ -175,6 +166,26 @@
       0%, 100% { opacity: 0.45; transform: scale(0.9); }
       50% { opacity: 1; transform: scale(1.15); }
     }
+
+    .library-btn {
+      height: 34px;
+      padding: 0 12px;
+      border-radius: 10px;
+      border: 1px solid var(--glass-border-accent);
+      background: linear-gradient(135deg, rgba(203, 166, 247, 0.2), rgba(137, 180, 250, 0.18));
+      color: var(--ctp-text);
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      font-family: inherit;
+      font-size: 12.5px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.15s ease, border-color 0.2s ease;
+    }
+
+    .library-btn svg { color: var(--ctp-mauve); }
+    .library-btn:active { transform: scale(0.96); }
 
     .icon-btn {
       width: 34px;
@@ -194,33 +205,34 @@
       border-color: var(--glass-border-accent);
     }
 
-    .icon-btn.accent {
-      background: linear-gradient(135deg, rgba(203, 166, 247, 0.22), rgba(137, 180, 250, 0.2));
-      border-color: var(--glass-border-accent);
-      color: var(--ctp-mauve);
-    }
-
     /* Контейнер видеоплеера */
     .player-wrapper {
       position: relative;
       flex-shrink: 0;
       width: 100%;
       aspect-ratio: 16 / 9;
-      max-height: 36dvh;
+      max-height: 38dvh;
       background: #000000;
       border-bottom: 1px solid var(--glass-border);
       overflow: hidden;
       touch-action: manipulation;
     }
 
-    /* Полноэкранный режим: нативный Fullscreen API + fallback класс для iOS/WebView */
+    /* Полноэкранный режим на весь физический экран (edge-to-edge, включая вырез камеры) */
+    html.fs-active .player-wrapper,
+    html:fullscreen .player-wrapper,
+    html:-webkit-full-screen .player-wrapper,
     .player-wrapper:fullscreen,
     .player-wrapper:-webkit-full-screen,
     .player-wrapper.is-fullscreen {
       position: fixed !important;
-      inset: 0 !important;
-      width: 100% !important;
-      height: 100% !important;
+      top: 0 !important;
+      left: 0 !important;
+      right: 0 !important;
+      bottom: 0 !important;
+      width: 100vw !important;
+      height: 100vh !important;
+      height: 100dvh !important;
       max-width: none !important;
       max-height: none !important;
       aspect-ratio: auto !important;
@@ -228,7 +240,7 @@
       margin: 0 !important;
       padding: 0 !important;
       background: #000000 !important;
-      z-index: 9999 !important;
+      z-index: 99999 !important;
     }
 
     .player-wrapper::backdrop {
@@ -252,7 +264,7 @@
       align-items: center;
       justify-content: center;
       gap: 10px;
-      background: radial-gradient(circle at center, rgba(30, 30, 46, 0.86), rgba(17, 17, 27, 0.96));
+      background: radial-gradient(circle at center, rgba(30, 30, 46, 0.88), rgba(17, 17, 27, 0.97));
       cursor: pointer;
     }
 
@@ -297,8 +309,9 @@
       cursor: pointer;
     }
 
-    .player-wrapper:fullscreen .unmute-badge,
-    .player-wrapper:-webkit-full-screen .unmute-badge,
+    html.fs-active .unmute-badge,
+    html:fullscreen .unmute-badge,
+    html:-webkit-full-screen .unmute-badge,
     .player-wrapper.is-fullscreen .unmute-badge {
       top: max(14px, var(--safe-top));
       right: max(16px, var(--safe-right));
@@ -314,7 +327,7 @@
       z-index: 14;
       padding: 10px 14px;
       border-radius: 999px;
-      background: rgba(24, 24, 37, 0.72);
+      background: rgba(24, 24, 37, 0.74);
       backdrop-filter: blur(10px);
       -webkit-backdrop-filter: blur(10px);
       border: 1px solid var(--glass-border-accent);
@@ -343,16 +356,19 @@
       padding: 10px 12px;
       background: linear-gradient(
         180deg,
-        rgba(0, 0, 0, 0.72) 0%,
+        rgba(0, 0, 0, 0.74) 0%,
         rgba(0, 0, 0, 0.08) 38%,
         rgba(0, 0, 0, 0.08) 62%,
-        rgba(0, 0, 0, 0.82) 100%
+        rgba(0, 0, 0, 0.84) 100%
       );
       opacity: 1;
       transition: opacity 0.25s ease;
     }
 
-    /* Учёт чёлки / вырезов экрана и системной полосы жестов в полноэкранном режиме */
+    /* Безопасные отступы только для элементов управления в полноэкранном режиме */
+    html.fs-active .player-controls,
+    html:fullscreen .player-controls,
+    html:-webkit-full-screen .player-controls,
     .player-wrapper:fullscreen .player-controls,
     .player-wrapper:-webkit-full-screen .player-controls,
     .player-wrapper.is-fullscreen .player-controls {
@@ -394,7 +410,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 26px;
+      gap: 28px;
     }
 
     .ctrl-circle {
@@ -487,11 +503,11 @@
     }
 
     .mini-ctrl-btn {
-      width: 30px;
-      height: 30px;
-      border-radius: 8px;
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      background: rgba(24, 24, 37, 0.58);
+      width: 32px;
+      height: 32px;
+      border-radius: 9px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(24, 24, 37, 0.62);
       color: var(--ctp-text);
       display: grid;
       place-items: center;
@@ -500,65 +516,7 @@
 
     .mini-ctrl-btn:active { border-color: var(--glass-border-accent); }
 
-    /* Панель быстрых реакций внутри полноэкранного плеера */
-    .fs-reactions-strip {
-      display: none;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .player-wrapper:fullscreen .fs-reactions-strip,
-    .player-wrapper:-webkit-full-screen .fs-reactions-strip,
-    .player-wrapper.is-fullscreen .fs-reactions-strip {
-      display: flex;
-    }
-
-    .fs-react-btn {
-      width: 30px;
-      height: 30px;
-      border-radius: 8px;
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      background: rgba(24, 24, 37, 0.58);
-      display: grid;
-      place-items: center;
-      cursor: pointer;
-      transition: transform 0.12s ease;
-    }
-
-    .fs-react-btn:active { transform: scale(0.88); }
-
-    .floating-reactions-layer {
-      position: absolute;
-      inset: 0;
-      z-index: 20;
-      pointer-events: none;
-      overflow: hidden;
-    }
-
-    .floating-reaction {
-      position: absolute;
-      bottom: 18px;
-      width: 38px;
-      height: 38px;
-      border-radius: 50%;
-      display: grid;
-      place-items: center;
-      background: rgba(24, 24, 37, 0.65);
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
-      border: 1px solid rgba(255, 255, 255, 0.16);
-      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
-      animation: floatUpReaction var(--dur, 2.2s) cubic-bezier(0.22, 1, 0.36, 1) forwards;
-      will-change: transform, opacity;
-    }
-
-    @keyframes floatUpReaction {
-      0% { opacity: 0; transform: translate3d(0, 12px, 0) scale(0.45) rotate(0deg); }
-      16% { opacity: 1; transform: translate3d(var(--drift-mid, 8px), -28px, 0) scale(1.12) rotate(var(--rot-mid, -8deg)); }
-      70% { opacity: 0.95; }
-      100% { opacity: 0; transform: translate3d(var(--drift-end, -14px), -220px, 0) scale(0.92) rotate(var(--rot-end, 12deg)); }
-    }
-
+    /* Чат */
     .chat-section {
       flex: 1;
       min-height: 0;
@@ -572,10 +530,10 @@
       min-height: 0;
       overflow-y: auto;
       overscroll-behavior: contain;
-      padding: 12px 14px 8px;
+      padding: 14px 14px 10px;
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 9px;
       scroll-behavior: smooth;
     }
 
@@ -652,39 +610,9 @@
     .sys-pill svg { color: var(--ctp-blue); flex-shrink: 0; }
     .sys-pill span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-    .reactions-bar {
-      flex-shrink: 0;
-      padding: 6px 12px 4px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 6px;
-    }
-
-    .reaction-btn {
-      flex: 1;
-      height: 36px;
-      border-radius: 12px;
-      border: 1px solid var(--glass-border);
-      background: var(--glass-bg);
-      backdrop-filter: blur(14px);
-      -webkit-backdrop-filter: blur(14px);
-      color: var(--ctp-subtext1);
-      display: grid;
-      place-items: center;
-      cursor: pointer;
-      transition: transform 0.14s ease, border-color 0.2s ease, background-color 0.2s ease;
-    }
-
-    .reaction-btn:active {
-      transform: scale(0.9);
-      border-color: var(--glass-border-accent);
-      background: rgba(203, 166, 247, 0.16);
-    }
-
     .chat-input-bar {
       flex-shrink: 0;
-      padding: 6px 12px calc(10px + var(--safe-bottom));
+      padding: 8px 12px calc(10px + var(--safe-bottom));
       display: flex;
       align-items: center;
       gap: 8px;
@@ -730,6 +658,7 @@
 
     .send-btn:active { transform: scale(0.93); }
 
+    /* Модальное окно медиатеки */
     .modal-backdrop {
       position: fixed;
       inset: 0;
@@ -739,7 +668,7 @@
       justify-content: center;
       padding: 12px;
       padding-bottom: calc(12px + var(--safe-bottom));
-      background: rgba(17, 17, 27, 0.72);
+      background: rgba(17, 17, 27, 0.74);
       backdrop-filter: blur(10px);
       -webkit-backdrop-filter: blur(10px);
       opacity: 0;
@@ -756,7 +685,7 @@
       display: flex;
       flex-direction: column;
       border-radius: 22px;
-      background: rgba(24, 24, 37, 0.9);
+      background: rgba(24, 24, 37, 0.92);
       backdrop-filter: blur(24px);
       -webkit-backdrop-filter: blur(24px);
       border: 1px solid var(--glass-border-accent);
@@ -988,39 +917,29 @@
 
     @media (min-width: 768px) {
       .modal-backdrop { align-items: center; }
-      .player-wrapper { max-height: 44dvh; }
+      .player-wrapper { max-height: 46dvh; }
     }
   </style>
 </head>
 <body>
   <div class="app-shell">
     <header class="topbar">
-      <div class="brand">
-        <div class="brand-icon" aria-hidden="true">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <polygon points="6 4 20 12 6 20 6 4"></polygon>
-          </svg>
-        </div>
-      </div>
+      <button id="p2pStatusPill" class="p2p-pill connecting" type="button" title="Переподключить P2P">
+        <span class="status-dot"></span>
+        <span id="p2pStatusText">Поиск</span>
+        <span id="p2pSlotBadge" class="p2p-slot">-</span>
+      </button>
 
-      <div class="topbar-actions">
-        <button id="p2pStatusPill" class="p2p-pill connecting" type="button" title="Переподключить P2P">
-          <span class="status-dot"></span>
-          <span id="p2pStatusText">P2P</span>
-          <span id="p2pSlotBadge" class="p2p-slot">-</span>
-        </button>
-
-        <button id="openLibraryBtn" class="icon-btn accent" type="button" aria-label="Медиатека">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="m6 14 1.5-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.54 6a2 2 0 0 1-1.95 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2"></path>
-          </svg>
-        </button>
-      </div>
+      <button id="openLibraryBtn" class="library-btn" type="button" aria-label="Медиатека">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="m6 14 1.5-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.54 6a2 2 0 0 1-1.95 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2"></path>
+        </svg>
+        <span>Медиатека</span>
+      </button>
     </header>
 
     <section id="playerWrapper" class="player-wrapper">
       <video id="videoPlayer" playsinline webkit-playsinline preload="metadata"></video>
-      <div id="floatingReactionsLayer" class="floating-reactions-layer" aria-hidden="true"></div>
 
       <div id="seekRippleLeft" class="seek-ripple left">−10 сек</div>
       <div id="seekRippleRight" class="seek-ripple right">+10 сек</div>
@@ -1092,27 +1011,6 @@
           <div class="controls-meta-row">
             <span id="timeDisplay">00:00 / 00:00</span>
             <div class="controls-right-btns">
-              <div class="fs-reactions-strip" aria-label="Реакции в полноэкранном режиме">
-                <button class="fs-react-btn reaction-trigger" type="button" data-reaction="heart" aria-label="Сердце">
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#f38ba8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"></path>
-                  </svg>
-                </button>
-                <button class="fs-react-btn reaction-trigger" type="button" data-reaction="flame" aria-label="Огонь">
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fab387" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"></path>
-                  </svg>
-                </button>
-                <button class="fs-react-btn reaction-trigger" type="button" data-reaction="smile" aria-label="Улыбка">
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#f9e2af" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <path d="M8 14s1.5 2 4 2 4-2 4-2"></path>
-                    <line x1="9" y1="9" x2="9.01" y2="9"></line>
-                    <line x1="15" y1="9" x2="15.01" y2="9"></line>
-                  </svg>
-                </button>
-              </div>
-
               <button id="muteToggleBtn" class="mini-ctrl-btn" type="button" aria-label="Звук">
                 <svg id="muteIcon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
@@ -1128,52 +1026,6 @@
 
     <main class="chat-section">
       <div id="chatMessages" class="chat-messages"></div>
-
-      <div class="reactions-bar" aria-label="Быстрые реакции">
-        <button class="reaction-btn reaction-trigger" type="button" data-reaction="heart" aria-label="Сердце">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f38ba8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"></path>
-          </svg>
-        </button>
-
-        <button class="reaction-btn reaction-trigger" type="button" data-reaction="flame" aria-label="Огонь">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fab387" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"></path>
-          </svg>
-        </button>
-
-        <button class="reaction-btn reaction-trigger" type="button" data-reaction="smile" aria-label="Улыбка">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f9e2af" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="10"></circle>
-            <path d="M8 14s1.5 2 4 2 4-2 4-2"></path>
-            <line x1="9" y1="9" x2="9.01" y2="9"></line>
-            <line x1="15" y1="9" x2="15.01" y2="9"></line>
-          </svg>
-        </button>
-
-        <button class="reaction-btn reaction-trigger" type="button" data-reaction="sparkles" aria-label="Восторг">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#cba6f7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"></path>
-            <path d="M5 3v4"></path>
-            <path d="M19 17v4"></path>
-            <path d="M3 5h4"></path>
-            <path d="M17 19h4"></path>
-          </svg>
-        </button>
-
-        <button class="reaction-btn reaction-trigger" type="button" data-reaction="thumbs-up" aria-label="Класс">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a6e3a1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M7 10v12"></path>
-            <path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2h0a3.13 3.13 0 0 1 3 3.88Z"></path>
-          </svg>
-        </button>
-
-        <button class="reaction-btn reaction-trigger" type="button" data-reaction="zap" aria-label="Молния">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#89b4fa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
-          </svg>
-        </button>
-      </div>
 
       <form id="chatForm" class="chat-input-bar" autocomplete="off">
         <input
@@ -1336,7 +1188,6 @@
 
         playerWrapper: document.getElementById("playerWrapper"),
         video: document.getElementById("videoPlayer"),
-        floatingLayer: document.getElementById("floatingReactionsLayer"),
         seekRippleLeft: document.getElementById("seekRippleLeft"),
         seekRippleRight: document.getElementById("seekRippleRight"),
         unmuteBadge: document.getElementById("unmuteBadge"),
@@ -1359,7 +1210,6 @@
         chatMessages: document.getElementById("chatMessages"),
         chatForm: document.getElementById("chatForm"),
         chatInput: document.getElementById("chatInput"),
-        reactionTriggers: document.querySelectorAll(".reaction-trigger"),
 
         libraryModal: document.getElementById("libraryModal"),
         refreshLibraryBtn: document.getElementById("refreshLibraryBtn"),
@@ -1396,6 +1246,7 @@
         controlsHideTimer: null,
         isScrubbing: false,
         isPseudoFullscreen: false,
+        isAutoLandscapeFullscreen: false,
         lastTapTime: 0,
         singleTapTimer: null
       };
@@ -1468,33 +1319,6 @@
         fileVideo: `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline><polygon points="10 12 16 15 10 18 10 12"></polygon></svg>`
       };
 
-      const REACTION_SVGS = {
-        heart: {
-          color: "#f38ba8",
-          svg: `<svg width="20" height="20" viewBox="0 0 24 24" fill="rgba(243,139,168,0.28)" stroke="#f38ba8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"></path></svg>`
-        },
-        flame: {
-          color: "#fab387",
-          svg: `<svg width="20" height="20" viewBox="0 0 24 24" fill="rgba(250,179,135,0.28)" stroke="#fab387" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"></path></svg>`
-        },
-        smile: {
-          color: "#f9e2af",
-          svg: `<svg width="20" height="20" viewBox="0 0 24 24" fill="rgba(249,226,175,0.22)" stroke="#f9e2af" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M8 14s1.5 2 4 2 4-2 4-2"></path><line x1="9" y1="9" x2="9.01" y2="9"></line><line x1="15" y1="9" x2="15.01" y2="9"></line></svg>`
-        },
-        sparkles: {
-          color: "#cba6f7",
-          svg: `<svg width="20" height="20" viewBox="0 0 24 24" fill="rgba(203,166,247,0.28)" stroke="#cba6f7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"></path><path d="M5 3v4"></path><path d="M19 17v4"></path></svg>`
-        },
-        "thumbs-up": {
-          color: "#a6e3a1",
-          svg: `<svg width="20" height="20" viewBox="0 0 24 24" fill="rgba(166,227,161,0.25)" stroke="#a6e3a1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 10v12"></path><path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2h0a3.13 3.13 0 0 1 3 3.88Z"></path></svg>`
-        },
-        zap: {
-          color: "#89b4fa",
-          svg: `<svg width="20" height="20" viewBox="0 0 24 24" fill="rgba(137,180,250,0.28)" stroke="#89b4fa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>`
-        }
-      };
-
       function appendChatMessage(text, isSelf) {
         const row = document.createElement("div");
         row.className = `msg-row ${isSelf ? "self" : "peer"}`;
@@ -1530,31 +1354,6 @@
         requestAnimationFrame(() => {
           els.chatMessages.scrollTop = els.chatMessages.scrollHeight;
         });
-      }
-
-      function spawnFloatingReaction(reactionKey) {
-        const item = REACTION_SVGS[reactionKey] || REACTION_SVGS.heart;
-        const el = document.createElement("div");
-        el.className = "floating-reaction";
-        el.innerHTML = item.svg;
-
-        const startLeftPct = 14 + Math.random() * 72;
-        const driftMid = Math.round((Math.random() - 0.5) * 34);
-        const driftEnd = Math.round((Math.random() - 0.5) * 54);
-        const rotMid = Math.round((Math.random() - 0.5) * 24);
-        const rotEnd = Math.round((Math.random() - 0.5) * 36);
-        const duration = (1.9 + Math.random() * 0.65).toFixed(2);
-
-        el.style.left = `${startLeftPct}%`;
-        el.style.borderColor = `${item.color}44`;
-        el.style.setProperty("--drift-mid", `${driftMid}px`);
-        el.style.setProperty("--drift-end", `${driftEnd}px`);
-        el.style.setProperty("--rot-mid", `${rotMid}deg`);
-        el.style.setProperty("--rot-end", `${rotEnd}deg`);
-        el.style.setProperty("--dur", `${duration}s`);
-
-        els.floatingLayer.appendChild(el);
-        el.addEventListener("animationend", () => el.remove(), { once: true });
       }
 
       function updateP2PIndicator() {
@@ -1873,12 +1672,6 @@
             }
             break;
 
-          case "reaction":
-            if (packet.key && REACTION_SVGS[packet.key]) {
-              spawnFloatingReaction(packet.key);
-            }
-            break;
-
           case "load":
             if (packet.url) {
               loadVideoSource(packet.url, packet.title, false);
@@ -2116,17 +1909,19 @@
         updateMuteUI();
       });
 
-      /* Логика полноэкранного режима для мобильных браузеров */
+      /* Полноэкранный режим для мобильных браузеров (Android Chrome / iOS Safari / автоповорот) */
       function isAnyFullscreenActive() {
         return Boolean(
           document.fullscreenElement ||
           document.webkitFullscreenElement ||
-          state.isPseudoFullscreen
+          state.isPseudoFullscreen ||
+          state.isAutoLandscapeFullscreen
         );
       }
 
       function syncFullscreenUI() {
         const active = isAnyFullscreenActive();
+        document.documentElement.classList.toggle("fs-active", active);
         els.playerWrapper.classList.toggle("is-fullscreen", active);
         els.fullscreenIcon.innerHTML = active ? SVG_ICONS.fsExit : SVG_ICONS.fsEnter;
         if (els.themeColorMeta) {
@@ -2135,21 +1930,28 @@
       }
 
       async function enterMobileFullscreen() {
-        const wrapper = els.playerWrapper;
-        const requestFn = wrapper.requestFullscreen || wrapper.webkitRequestFullscreen;
+        const docEl = document.documentElement;
+        const requestFn = docEl.requestFullscreen || docEl.webkitRequestFullscreen;
 
         if (requestFn) {
           try {
-            await requestFn.call(wrapper, { navigationUI: "hide" });
+            await requestFn.call(docEl, { navigationUI: "hide" });
           } catch (err) {
             try {
-              await requestFn.call(wrapper);
+              await requestFn.call(docEl);
             } catch (e) {
               state.isPseudoFullscreen = true;
             }
           }
+        } else if (typeof els.video.webkitEnterFullscreen === "function" && els.video.readyState >= 1) {
+          /* Нативный полноэкранный плеер для iPhone Safari (скрывает строку адреса и статус-бар) */
+          try {
+            els.video.webkitEnterFullscreen();
+            return;
+          } catch (e) {
+            state.isPseudoFullscreen = true;
+          }
         } else {
-          /* Fallback для iOS Safari, где div.requestFullscreen недоступен */
           state.isPseudoFullscreen = true;
         }
 
@@ -2170,6 +1972,7 @@
           }
         }
         state.isPseudoFullscreen = false;
+        state.isAutoLandscapeFullscreen = false;
         syncFullscreenUI();
 
         if (screen.orientation && screen.orientation.unlock) {
@@ -2204,6 +2007,25 @@
           state.isPseudoFullscreen = false;
         }
         syncFullscreenUI();
+      });
+
+      /* Автоматическое разворачивание плеера при горизонтальном повороте телефона */
+      function handleViewportOrientation() {
+        const isLandscapePhone = window.innerWidth > window.innerHeight && window.innerHeight <= 520;
+        if (isLandscapePhone && state.currentVideoUrl && !els.libraryModal.classList.contains("open")) {
+          if (!isAnyFullscreenActive()) {
+            state.isAutoLandscapeFullscreen = true;
+            syncFullscreenUI();
+          }
+        } else if (!isLandscapePhone && state.isAutoLandscapeFullscreen) {
+          state.isAutoLandscapeFullscreen = false;
+          syncFullscreenUI();
+        }
+      }
+
+      window.addEventListener("resize", handleViewportOrientation);
+      window.addEventListener("orientationchange", () => {
+        setTimeout(handleViewportOrientation, 120);
       });
 
       function scrubToClientX(clientX) {
@@ -2459,16 +2281,6 @@
         els.chatInput.value = "";
         appendChatMessage(text, true);
         sendPeerPacket({ type: "chat", text });
-      });
-
-      els.reactionTriggers.forEach((btn) => {
-        btn.addEventListener("click", (e) => {
-          e.stopPropagation();
-          const key = btn.getAttribute("data-reaction");
-          if (!key) return;
-          spawnFloatingReaction(key);
-          sendPeerPacket({ type: "reaction", key });
-        });
       });
 
       els.p2pStatusPill.addEventListener("click", () => {
