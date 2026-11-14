@@ -43,7 +43,13 @@ jobs:
             "appName": "Lukin",
             "webDir": "www",
             "server": {
-              "cleartext": true
+              "cleartext": true,
+              "androidScheme": "http"
+            },
+            "plugins": {
+              "CapacitorHttp": {
+                "enabled": true
+              }
             }
           }
           EOF
