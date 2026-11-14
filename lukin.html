@@ -1,0 +1,2520 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+  />
+  <meta name="theme-color" content="#181825" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>Lukin</title>
+
+  <!-- PeerJS 1.5.4 для прямого P2P WebRTC DataChannel -->
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+
+  <style>
+    /* ==========================================================================
+       Палитра Catppuccin Mocha и переменные стеклянного интерфейса
+       ========================================================================== */
+    :root {
+      --ctp-base: #1e1e2e;
+      --ctp-mantle: #181825;
+      --ctp-crust: #11111b;
+      --ctp-surface0: #313244;
+      --ctp-surface1: #45475a;
+      --ctp-surface2: #585b70;
+      --ctp-text: #cdd6f4;
+      --ctp-subtext1: #bac2de;
+      --ctp-subtext0: #a6adc8;
+      --ctp-overlay0: #6c7086;
+      --ctp-mauve: #cba6f7;
+      --ctp-blue: #89b4fa;
+      --ctp-lavender: #b4befe;
+      --ctp-green: #a6e3a1;
+      --ctp-yellow: #f9e2af;
+      --ctp-red: #f38ba8;
+      --ctp-peach: #fab387;
+
+      --glass-bg: rgba(24, 24, 37, 0.74);
+      --glass-surface: rgba(49, 50, 68, 0.42);
+      --glass-border: rgba(205, 214, 244, 0.09);
+      --glass-border-accent: rgba(203, 166, 247, 0.28);
+      --glass-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+      --safe-left: env(safe-area-inset-left, 0px);
+      --safe-right: env(safe-area-inset-right, 0px);
+    }
+
+    /* ==========================================================================
+       Сброс стилей и базовый мобильный каркас (100dvh под Capacitor)
+       ========================================================================== */
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html,
+    body {
+      width: 100%;
+      height: 100dvh;
+      overflow: hidden;
+      background-color: var(--ctp-base);
+      color: var(--ctp-text);
+      font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, sans-serif;
+      font-size: 15px;
+      line-height: 1.4;
+      -webkit-font-smoothing: antialiased;
+      user-select: none;
+    }
+
+    /* Атмосферная мягкая подсветка фона для глубины glassmorphism */
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background:
+        radial-gradient(circle at 14% 8%, rgba(203, 166, 247, 0.09), transparent 44%),
+        radial-gradient(circle at 88% 92%, rgba(137, 180, 250, 0.08), transparent 46%);
+      z-index: 0;
+    }
+
+    .app-shell {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      height: 100dvh;
+      padding-top: var(--safe-top);
+      padding-left: var(--safe-left);
+      padding-right: var(--safe-right);
+    }
+
+    /* ==========================================================================
+       Компактная верхняя панель
+       ========================================================================== */
+    .topbar {
+      flex-shrink: 0;
+      height: 48px;
+      padding: 0 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--glass-bg);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      border-bottom: 1px solid var(--glass-border);
+      box-shadow: var(--glass-highlight);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 600;
+      font-size: 15px;
+      letter-spacing: -0.01em;
+      color: var(--ctp-text);
+    }
+
+    .brand-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 9px;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(135deg, rgba(203, 166, 247, 0.22), rgba(137, 180, 250, 0.22));
+      border: 1px solid var(--glass-border-accent);
+      color: var(--ctp-mauve);
+    }
+
+    .topbar-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Индикатор P2P связи */
+    .p2p-pill {
+      height: 32px;
+      padding: 0 10px;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      background: var(--glass-surface);
+      border: 1px solid var(--glass-border);
+      color: var(--ctp-subtext1);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: border-color 0.2s ease, transform 0.15s ease;
+    }
+
+    .p2p-pill:active {
+      transform: scale(0.96);
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--ctp-yellow);
+      box-shadow: 0 0 8px rgba(249, 226, 175, 0.65);
+      transition: background-color 0.25s ease, box-shadow 0.25s ease;
+    }
+
+    .p2p-pill.connected {
+      border-color: rgba(166, 227, 161, 0.26);
+    }
+
+    .p2p-pill.connected .status-dot {
+      background: var(--ctp-green);
+      box-shadow: 0 0 10px rgba(166, 227, 161, 0.75);
+    }
+
+    .p2p-pill.connecting .status-dot {
+      animation: pulseDot 1.4s infinite ease-in-out;
+    }
+
+    .p2p-slot {
+      padding: 1px 5px;
+      border-radius: 6px;
+      background: rgba(203, 166, 247, 0.14);
+      color: var(--ctp-mauve);
+      font-size: 11px;
+    }
+
+    @keyframes pulseDot {
+      0%, 100% { opacity: 0.45; transform: scale(0.9); }
+      50% { opacity: 1; transform: scale(1.15); }
+    }
+
+    /* Кнопка открытия медиатеки */
+    .icon-btn {
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      border: 1px solid var(--glass-border);
+      background: var(--glass-surface);
+      color: var(--ctp-text);
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
+    }
+
+    .icon-btn:active {
+      transform: scale(0.94);
+      border-color: var(--glass-border-accent);
+    }
+
+    .icon-btn.accent {
+      background: linear-gradient(135deg, rgba(203, 166, 247, 0.22), rgba(137, 180, 250, 0.2));
+      border-color: var(--glass-border-accent);
+      color: var(--ctp-mauve);
+    }
+
+    /* ==========================================================================
+       Секция синхронного видеоплеера
+       ========================================================================== */
+    .player-wrapper {
+      position: relative;
+      flex-shrink: 0;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      max-height: 36dvh;
+      background: var(--ctp-crust);
+      border-bottom: 1px solid var(--glass-border);
+      overflow: hidden;
+    }
+
+    .player-wrapper:fullscreen,
+    .player-wrapper:-webkit-full-screen {
+      max-height: none;
+      aspect-ratio: auto;
+      width: 100vw;
+      height: 100vh;
+    }
+
+    video#videoPlayer {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: block;
+      background: #0d0d14;
+    }
+
+    /* Пустое состояние плеера */
+    .player-empty {
+      position: absolute;
+      inset: 0;
+      z-index: 5;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      background: radial-gradient(circle at center, rgba(30, 30, 46, 0.86), rgba(17, 17, 27, 0.96));
+      cursor: pointer;
+    }
+
+    .player-empty.hidden {
+      display: none;
+    }
+
+    .player-empty-ring {
+      width: 52px;
+      height: 52px;
+      border-radius: 16px;
+      display: grid;
+      place-items: center;
+      background: rgba(203, 166, 247, 0.12);
+      border: 1px solid var(--glass-border-accent);
+      color: var(--ctp-mauve);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+    }
+
+    .player-empty-label {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--ctp-subtext0);
+    }
+
+    /* Плашка разблокировки звука при автостарте */
+    .unmute-badge {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      z-index: 18;
+      height: 30px;
+      padding: 0 10px;
+      border-radius: 999px;
+      display: none;
+      align-items: center;
+      gap: 6px;
+      background: rgba(24, 24, 37, 0.85);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid var(--glass-border-accent);
+      color: var(--ctp-mauve);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .unmute-badge.visible {
+      display: inline-flex;
+    }
+
+    /* Кастомный оверлей управления плеером */
+    .player-controls {
+      position: absolute;
+      inset: 0;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 10px 12px;
+      background: linear-gradient(
+        180deg,
+        rgba(17, 17, 27, 0.72) 0%,
+        rgba(17, 17, 27, 0.12) 42%,
+        rgba(17, 17, 27, 0.15) 60%,
+        rgba(17, 17, 27, 0.84) 100%
+      );
+      opacity: 1;
+      transition: opacity 0.25s ease;
+    }
+
+    .player-controls.hidden-ui {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .controls-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .video-title-chip {
+      max-width: 78%;
+      padding: 4px 10px;
+      border-radius: 8px;
+      background: rgba(24, 24, 37, 0.62);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid var(--glass-border);
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--ctp-text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .controls-center {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 22px;
+    }
+
+    .ctrl-circle {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      border: 1px solid var(--glass-border);
+      background: rgba(24, 24, 37, 0.65);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      color: var(--ctp-text);
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      transition: transform 0.15s ease, border-color 0.2s ease;
+    }
+
+    .ctrl-circle:active {
+      transform: scale(0.92);
+    }
+
+    .ctrl-circle.play-main {
+      width: 52px;
+      height: 52px;
+      background: linear-gradient(135deg, rgba(203, 166, 247, 0.34), rgba(137, 180, 250, 0.3));
+      border-color: var(--glass-border-accent);
+      color: #ffffff;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+    }
+
+    .controls-bottom {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .scrubber-wrap {
+      position: relative;
+      width: 100%;
+      height: 20px;
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+      touch-action: none;
+    }
+
+    .scrubber-track {
+      position: relative;
+      width: 100%;
+      height: 4px;
+      border-radius: 999px;
+      background: rgba(205, 214, 244, 0.2);
+      overflow: visible;
+    }
+
+    .scrubber-fill {
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 0%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, var(--ctp-mauve), var(--ctp-blue));
+    }
+
+    .scrubber-thumb {
+      position: absolute;
+      top: 50%;
+      left: 0%;
+      width: 13px;
+      height: 13px;
+      border-radius: 50%;
+      background: var(--ctp-text);
+      border: 2px solid var(--ctp-mauve);
+      transform: translate(-50%, -50%);
+      box-shadow: 0 0 8px rgba(203, 166, 247, 0.7);
+    }
+
+    .controls-meta-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 11px;
+      font-variant-numeric: tabular-nums;
+      color: var(--ctp-subtext1);
+    }
+
+    .controls-right-btns {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .mini-ctrl-btn {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      border: 1px solid transparent;
+      background: rgba(24, 24, 37, 0.5);
+      color: var(--ctp-text);
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+    }
+
+    .mini-ctrl-btn:active {
+      border-color: var(--glass-border-accent);
+    }
+
+    /* ==========================================================================
+       Слой плавающих SVG-реакций поверх видео
+       ========================================================================== */
+    .floating-reactions-layer {
+      position: absolute;
+      inset: 0;
+      z-index: 20;
+      pointer-events: none;
+      overflow: hidden;
+    }
+
+    .floating-reaction {
+      position: absolute;
+      bottom: 14px;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background: rgba(24, 24, 37, 0.62);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+      animation: floatUpReaction var(--dur, 2.2s) cubic-bezier(0.22, 1, 0.36, 1) forwards;
+      will-change: transform, opacity;
+    }
+
+    @keyframes floatUpReaction {
+      0% {
+        opacity: 0;
+        transform: translate3d(0, 12px, 0) scale(0.45) rotate(0deg);
+      }
+      16% {
+        opacity: 1;
+        transform: translate3d(var(--drift-mid, 8px), -24px, 0) scale(1.12) rotate(var(--rot-mid, -8deg));
+      }
+      70% {
+        opacity: 0.95;
+      }
+      100% {
+        opacity: 0;
+        transform: translate3d(var(--drift-end, -14px), -175px, 0) scale(0.92) rotate(var(--rot-end, 12deg));
+      }
+    }
+
+    /* ==========================================================================
+       Секция чата (занимает оставшуюся высоту 100dvh)
+       ========================================================================== */
+    .chat-section {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      background: rgba(30, 30, 46, 0.65);
+    }
+
+    .chat-messages {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      padding: 12px 14px 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      scroll-behavior: smooth;
+    }
+
+    .chat-messages::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    .chat-messages::-webkit-scrollbar-thumb {
+      background: rgba(108, 112, 134, 0.35);
+      border-radius: 999px;
+    }
+
+    /* Пузыри текстовых сообщений */
+    .msg-row {
+      display: flex;
+      flex-direction: column;
+      max-width: 82%;
+      animation: msgIn 0.2s ease-out;
+    }
+
+    .msg-row.self {
+      align-self: flex-end;
+      align-items: flex-end;
+    }
+
+    .msg-row.peer {
+      align-self: flex-start;
+      align-items: flex-start;
+    }
+
+    @keyframes msgIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .msg-bubble {
+      padding: 9px 13px;
+      border-radius: 16px;
+      font-size: 14px;
+      line-height: 1.42;
+      word-break: break-word;
+      user-select: text;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      box-shadow: var(--glass-highlight);
+    }
+
+    .msg-row.self .msg-bubble {
+      background: linear-gradient(135deg, rgba(203, 166, 247, 0.22), rgba(137, 180, 250, 0.2));
+      border: 1px solid rgba(203, 166, 247, 0.28);
+      border-bottom-right-radius: 5px;
+      color: var(--ctp-text);
+    }
+
+    .msg-row.peer .msg-bubble {
+      background: rgba(24, 24, 37, 0.78);
+      border: 1px solid var(--glass-border);
+      border-bottom-left-radius: 5px;
+      color: var(--ctp-text);
+    }
+
+    .msg-time {
+      margin-top: 3px;
+      padding: 0 4px;
+      font-size: 10px;
+      color: var(--ctp-overlay0);
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Компактные системные уведомления о действиях в плеере */
+    .sys-pill {
+      align-self: center;
+      max-width: 92%;
+      padding: 4px 11px;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(24, 24, 37, 0.64);
+      border: 1px solid var(--glass-border);
+      color: var(--ctp-subtext0);
+      font-size: 11.5px;
+      animation: msgIn 0.2s ease-out;
+    }
+
+    .sys-pill svg {
+      color: var(--ctp-blue);
+      flex-shrink: 0;
+    }
+
+    .sys-pill span {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* Панель быстрых SVG-реакций */
+    .reactions-bar {
+      flex-shrink: 0;
+      padding: 6px 12px 4px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+    }
+
+    .reaction-btn {
+      flex: 1;
+      height: 36px;
+      border-radius: 12px;
+      border: 1px solid var(--glass-border);
+      background: var(--glass-bg);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      color: var(--ctp-subtext1);
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      transition: transform 0.14s ease, border-color 0.2s ease, background-color 0.2s ease;
+    }
+
+    .reaction-btn:active {
+      transform: scale(0.9);
+      border-color: var(--glass-border-accent);
+      background: rgba(203, 166, 247, 0.16);
+    }
+
+    /* Нижняя панель ввода сообщения */
+    .chat-input-bar {
+      flex-shrink: 0;
+      padding: 6px 12px calc(10px + var(--safe-bottom));
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--glass-bg);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-top: 1px solid var(--glass-border);
+    }
+
+    .chat-input {
+      flex: 1;
+      height: 42px;
+      padding: 0 14px;
+      border-radius: 14px;
+      border: 1px solid var(--glass-border);
+      background: rgba(49, 50, 68, 0.45);
+      color: var(--ctp-text);
+      font-family: inherit;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s ease, background-color 0.2s ease;
+    }
+
+    .chat-input::placeholder {
+      color: var(--ctp-overlay0);
+    }
+
+    .chat-input:focus {
+      border-color: var(--glass-border-accent);
+      background: rgba(49, 50, 68, 0.65);
+    }
+
+    .send-btn {
+      width: 42px;
+      height: 42px;
+      flex-shrink: 0;
+      border-radius: 14px;
+      border: 1px solid var(--glass-border-accent);
+      background: linear-gradient(135deg, var(--ctp-mauve), var(--ctp-blue));
+      color: var(--ctp-crust);
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      transition: transform 0.15s ease, opacity 0.2s ease;
+    }
+
+    .send-btn:active {
+      transform: scale(0.93);
+    }
+
+    /* ==========================================================================
+       Модальное окно медиатеки и настроек сервера
+       ========================================================================== */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 50;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      padding: 12px;
+      padding-bottom: calc(12px + var(--safe-bottom));
+      background: rgba(17, 17, 27, 0.72);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.22s ease;
+    }
+
+    .modal-backdrop.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .modal-sheet {
+      width: 100%;
+      max-width: 540px;
+      max-height: 84dvh;
+      display: flex;
+      flex-direction: column;
+      border-radius: 22px;
+      background: rgba(24, 24, 37, 0.9);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border: 1px solid var(--glass-border-accent);
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6), var(--glass-highlight);
+      overflow: hidden;
+      transform: translateY(18px);
+      transition: transform 0.24s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .modal-backdrop.open .modal-sheet {
+      transform: translateY(0);
+    }
+
+    .modal-header {
+      flex-shrink: 0;
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--glass-border);
+    }
+
+    .modal-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--ctp-text);
+    }
+
+    .modal-title svg {
+      color: var(--ctp-mauve);
+    }
+
+    .modal-header-btns {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .server-config {
+      flex-shrink: 0;
+      padding: 12px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      border-bottom: 1px solid var(--glass-border);
+      background: rgba(17, 17, 27, 0.35);
+    }
+
+    .preset-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .preset-btn {
+      height: 36px;
+      padding: 0 10px;
+      border-radius: 11px;
+      border: 1px solid var(--glass-border);
+      background: var(--glass-surface);
+      color: var(--ctp-subtext1);
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      cursor: pointer;
+      transition: all 0.18s ease;
+    }
+
+    .preset-btn.active {
+      background: linear-gradient(135deg, rgba(203, 166, 247, 0.22), rgba(137, 180, 250, 0.18));
+      border-color: var(--glass-border-accent);
+      color: var(--ctp-text);
+    }
+
+    .preset-btn span {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .custom-url-row {
+      display: flex;
+      gap: 8px;
+    }
+
+    .url-input {
+      flex: 1;
+      height: 38px;
+      padding: 0 12px;
+      border-radius: 11px;
+      border: 1px solid var(--glass-border);
+      background: rgba(49, 50, 68, 0.45);
+      color: var(--ctp-text);
+      font-family: inherit;
+      font-size: 13px;
+      outline: none;
+    }
+
+    .url-input:focus {
+      border-color: var(--glass-border-accent);
+    }
+
+    .apply-url-btn {
+      height: 38px;
+      padding: 0 14px;
+      border-radius: 11px;
+      border: 1px solid var(--glass-border-accent);
+      background: rgba(203, 166, 247, 0.2);
+      color: var(--ctp-mauve);
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+    }
+
+    .apply-url-btn:active {
+      transform: scale(0.96);
+    }
+
+    /* Навигация по подпапкам директории */
+    .dir-nav-bar {
+      flex-shrink: 0;
+      padding: 8px 16px;
+      display: none;
+      align-items: center;
+      gap: 8px;
+      border-bottom: 1px solid var(--glass-border);
+      background: rgba(49, 50, 68, 0.24);
+    }
+
+    .dir-nav-bar.visible {
+      display: flex;
+    }
+
+    .dir-up-btn {
+      height: 28px;
+      padding: 0 10px;
+      border-radius: 8px;
+      border: 1px solid var(--glass-border);
+      background: var(--glass-surface);
+      color: var(--ctp-blue);
+      font-size: 12px;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      cursor: pointer;
+    }
+
+    .dir-path-label {
+      flex: 1;
+      font-size: 12px;
+      color: var(--ctp-subtext0);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* Список файлов медиатеки */
+    .media-list {
+      flex: 1;
+      min-height: 180px;
+      overflow-y: auto;
+      padding: 10px 14px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+
+    .media-item {
+      width: 100%;
+      padding: 11px 12px;
+      border-radius: 13px;
+      border: 1px solid var(--glass-border);
+      background: rgba(49, 50, 68, 0.34);
+      color: var(--ctp-text);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-align: left;
+      cursor: pointer;
+      transition: border-color 0.18s ease, background-color 0.18s ease, transform 0.14s ease;
+    }
+
+    .media-item:active {
+      transform: scale(0.985);
+      border-color: var(--glass-border-accent);
+      background: rgba(203, 166, 247, 0.14);
+    }
+
+    .media-item.active-video {
+      border-color: var(--glass-border-accent);
+      background: linear-gradient(135deg, rgba(203, 166, 247, 0.16), rgba(137, 180, 250, 0.12));
+    }
+
+    .media-item-icon {
+      width: 34px;
+      height: 34px;
+      flex-shrink: 0;
+      border-radius: 10px;
+      display: grid;
+      place-items: center;
+      background: rgba(24, 24, 37, 0.72);
+      border: 1px solid var(--glass-border);
+      color: var(--ctp-blue);
+    }
+
+    .media-item.is-dir .media-item-icon {
+      color: var(--ctp-yellow);
+    }
+
+    .media-item.active-video .media-item-icon {
+      color: var(--ctp-mauve);
+    }
+
+    .media-item-name {
+      flex: 1;
+      min-width: 0;
+      font-size: 13.5px;
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .media-ext-tag {
+      flex-shrink: 0;
+      padding: 2px 7px;
+      border-radius: 6px;
+      background: rgba(137, 180, 250, 0.14);
+      color: var(--ctp-blue);
+      font-size: 10.5px;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+    }
+
+    .media-state-box {
+      flex: 1;
+      min-height: 170px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      text-align: center;
+      padding: 20px;
+      color: var(--ctp-subtext0);
+      font-size: 13px;
+    }
+
+    .spin {
+      animation: spinIcon 1s linear infinite;
+    }
+
+    @keyframes spinIcon {
+      to { transform: rotate(360deg); }
+    }
+
+    @media (min-width: 768px) {
+      .modal-backdrop {
+        align-items: center;
+      }
+      .player-wrapper {
+        max-height: 44dvh;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <!-- ====================================================================
+         Верхняя панель: логотип, статус P2P и кнопка медиатеки
+         ==================================================================== -->
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-icon" aria-hidden="true">
+          <!-- Lucide: play-circle / sync -->
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="6 4 20 12 6 20 6 4"></polygon>
+          </svg>
+        </div>
+      </div>
+
+      <div class="topbar-actions">
+        <button id="p2pStatusPill" class="p2p-pill connecting" type="button" title="Переподключить P2P">
+          <span class="status-dot"></span>
+          <span id="p2pStatusText">P2P</span>
+          <span id="p2pSlotBadge" class="p2p-slot">-</span>
+        </button>
+
+        <button id="openLibraryBtn" class="icon-btn accent" type="button" aria-label="Медиатека">
+          <!-- Lucide: folder-open -->
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="m6 14 1.5-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.54 6a2 2 0 0 1-1.95 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2"></path>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- ====================================================================
+         Верхняя часть: синхронный HTML5 видеоплеер + слой плавающих реакций
+         ==================================================================== -->
+    <section id="playerWrapper" class="player-wrapper">
+      <video id="videoPlayer" playsinline webkit-playsinline preload="metadata"></video>
+
+      <!-- Плавающие SVG-реакции поверх видео -->
+      <div id="floatingReactionsLayer" class="floating-reactions-layer" aria-hidden="true"></div>
+
+      <!-- Кнопка включения звука при вынужденном muted-автоплее -->
+      <button id="unmuteBadge" class="unmute-badge" type="button">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+          <line x1="23" y1="9" x2="17" y2="15"></line>
+          <line x1="17" y1="9" x2="23" y2="15"></line>
+        </svg>
+        <span>Включить звук</span>
+      </button>
+
+      <!-- Заглушка до выбора видео -->
+      <div id="playerEmptyState" class="player-empty">
+        <div class="player-empty-ring">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect>
+            <line x1="7" y1="2" x2="7" y2="22"></line>
+            <line x1="17" y1="2" x2="17" y2="22"></line>
+            <line x1="2" y1="12" x2="22" y2="12"></line>
+          </svg>
+        </div>
+        <span class="player-empty-label">Открыть медиатеку</span>
+      </div>
+
+      <!-- Сенсорный оверлей управления плеером -->
+      <div id="playerControls" class="player-controls hidden-ui">
+        <div class="controls-top">
+          <div id="videoTitleChip" class="video-title-chip">Видео</div>
+          <button id="fullscreenBtn" class="mini-ctrl-btn" type="button" aria-label="Во весь экран">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="15 3 21 3 21 9"></polyline>
+              <polyline points="9 21 3 21 3 15"></polyline>
+              <line x1="21" y1="3" x2="14" y2="10"></line>
+              <line x1="3" y1="21" x2="10" y2="14"></line>
+            </svg>
+          </button>
+        </div>
+
+        <div class="controls-center">
+          <button id="seekBackBtn" class="ctrl-circle" type="button" aria-label="Назад 10 секунд">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+              <path d="M3 3v5h5"></path>
+            </svg>
+          </button>
+
+          <button id="playPauseBtn" class="ctrl-circle play-main" type="button" aria-label="Пуск или пауза">
+            <svg id="playPauseIcon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="6 4 20 12 6 20 6 4"></polygon>
+            </svg>
+          </button>
+
+          <button id="seekFwdBtn" class="ctrl-circle" type="button" aria-label="Вперёд 10 секунд">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"></path>
+              <path d="M21 3v5h-5"></path>
+            </svg>
+          </button>
+        </div>
+
+        <div class="controls-bottom">
+          <div id="scrubberWrap" class="scrubber-wrap">
+            <div class="scrubber-track">
+              <div id="scrubberFill" class="scrubber-fill"></div>
+              <div id="scrubberThumb" class="scrubber-thumb"></div>
+            </div>
+          </div>
+
+          <div class="controls-meta-row">
+            <span id="timeDisplay">00:00 / 00:00</span>
+            <div class="controls-right-btns">
+              <button id="muteToggleBtn" class="mini-ctrl-btn" type="button" aria-label="Звук">
+                <svg id="muteIcon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                  <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                  <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====================================================================
+         Нижняя часть: лента сообщений, быстрые SVG-реакции и поле ввода
+         ==================================================================== -->
+    <main class="chat-section">
+      <div id="chatMessages" class="chat-messages"></div>
+
+      <!-- Панель быстрых плавающих SVG-реакций (строго без эмодзи) -->
+      <div class="reactions-bar" aria-label="Быстрые реакции">
+        <button class="reaction-btn" type="button" data-reaction="heart" aria-label="Сердце">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f38ba8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"></path>
+          </svg>
+        </button>
+
+        <button class="reaction-btn" type="button" data-reaction="flame" aria-label="Огонь">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fab387" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"></path>
+          </svg>
+        </button>
+
+        <button class="reaction-btn" type="button" data-reaction="smile" aria-label="Улыбка">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f9e2af" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <path d="M8 14s1.5 2 4 2 4-2 4-2"></path>
+            <line x1="9" y1="9" x2="9.01" y2="9"></line>
+            <line x1="15" y1="9" x2="15.01" y2="9"></line>
+          </svg>
+        </button>
+
+        <button class="reaction-btn" type="button" data-reaction="sparkles" aria-label="Восторг">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#cba6f7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"></path>
+            <path d="M5 3v4"></path>
+            <path d="M19 17v4"></path>
+            <path d="M3 5h4"></path>
+            <path d="M17 19h4"></path>
+          </svg>
+        </button>
+
+        <button class="reaction-btn" type="button" data-reaction="thumbs-up" aria-label="Класс">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a6e3a1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M7 10v12"></path>
+            <path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2h0a3.13 3.13 0 0 1 3 3.88Z"></path>
+          </svg>
+        </button>
+
+        <button class="reaction-btn" type="button" data-reaction="zap" aria-label="Молния">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#89b4fa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Поле ввода текста -->
+      <form id="chatForm" class="chat-input-bar" autocomplete="off">
+        <input
+          id="chatInput"
+          class="chat-input"
+          type="text"
+          maxlength="600"
+          placeholder="Сообщение..."
+          aria-label="Текст сообщения"
+        />
+        <button class="send-btn" type="submit" aria-label="Отправить">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="22" y1="2" x2="11" y2="13"></line>
+            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+          </svg>
+        </button>
+      </form>
+    </main>
+  </div>
+
+  <!-- ======================================================================
+       Модальное окно медиатеки и настроек сервера
+       ====================================================================== -->
+  <div id="libraryModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="libraryModalTitle">
+    <div class="modal-sheet">
+      <div class="modal-header">
+        <div id="libraryModalTitle" class="modal-title">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect>
+            <rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect>
+            <line x1="6" y1="6" x2="6.01" y2="6"></line>
+            <line x1="6" y1="18" x2="6.01" y2="18"></line>
+          </svg>
+          <span>Медиатека</span>
+        </div>
+
+        <div class="modal-header-btns">
+          <button id="refreshLibraryBtn" class="icon-btn" type="button" aria-label="Обновить список">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="23 4 23 10 17 10"></polyline>
+              <polyline points="1 20 1 14 7 14"></polyline>
+              <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+            </svg>
+          </button>
+
+          <button id="closeLibraryBtn" class="icon-btn" type="button" aria-label="Закрыть">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Быстрый переключатель серверов + поле своего URL -->
+      <div class="server-config">
+        <div class="preset-row">
+          <button
+            id="presetWanBtn"
+            class="preset-btn"
+            type="button"
+            data-server="http://109.226.123.162:8844"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="2" y1="12" x2="22" y2="12"></line>
+              <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+            </svg>
+            <span>109.226.123.162:8844</span>
+          </button>
+
+          <button
+            id="presetLanBtn"
+            class="preset-btn"
+            type="button"
+            data-server="http://192.168.1.107:8844"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+              <polyline points="9 22 9 12 15 12 15 22"></polyline>
+            </svg>
+            <span>192.168.1.107:8844</span>
+          </button>
+        </div>
+
+        <div class="custom-url-row">
+          <input
+            id="serverUrlInput"
+            class="url-input"
+            type="url"
+            inputmode="url"
+            placeholder="http://192.168.1.107:8844"
+            aria-label="Адрес медиасервера"
+          />
+          <button id="saveServerUrlBtn" class="apply-url-btn" type="button">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+            <span>ОК</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Полоса навигации по поддиректориям -->
+      <div id="dirNavBar" class="dir-nav-bar">
+        <button id="dirUpBtn" class="dir-up-btn" type="button">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="9 14 4 9 9 4"></polyline>
+            <path d="M20 20v-7a4 4 0 0 0-4-4H4"></path>
+          </svg>
+          <span>Назад</span>
+        </button>
+        <span id="dirPathLabel" class="dir-path-label">/</span>
+      </div>
+
+      <!-- Список видеофайлов и папок -->
+      <div id="mediaList" class="media-list"></div>
+    </div>
+  </div>
+
+  <script>
+    (() => {
+      "use strict";
+
+      /* ======================================================================
+         Константы и конфигурация приложения
+         ====================================================================== */
+      const PEER_ID_PRIMARY = "ami-watch-1";
+      const PEER_ID_SECONDARY = "ami-watch-2";
+
+      const PRESET_SERVERS = [
+        "http://109.226.123.162:8844",
+        "http://192.168.1.107:8844"
+      ];
+      const STORAGE_KEY_SERVER = "ami_watch_server_url_v1";
+      const VIDEO_EXTENSIONS = [".mp4", ".webm", ".mkv", ".mov"];
+      const DRIFT_THRESHOLD_SEC = 0.7;
+
+      /* ======================================================================
+         Ссылки на DOM-элементы
+         ====================================================================== */
+      const els = {
+        p2pStatusPill: document.getElementById("p2pStatusPill"),
+        p2pStatusText: document.getElementById("p2pStatusText"),
+        p2pSlotBadge: document.getElementById("p2pSlotBadge"),
+        openLibraryBtn: document.getElementById("openLibraryBtn"),
+
+        playerWrapper: document.getElementById("playerWrapper"),
+        video: document.getElementById("videoPlayer"),
+        floatingLayer: document.getElementById("floatingReactionsLayer"),
+        unmuteBadge: document.getElementById("unmuteBadge"),
+        playerEmpty: document.getElementById("playerEmptyState"),
+        playerControls: document.getElementById("playerControls"),
+        videoTitleChip: document.getElementById("videoTitleChip"),
+        fullscreenBtn: document.getElementById("fullscreenBtn"),
+        seekBackBtn: document.getElementById("seekBackBtn"),
+        playPauseBtn: document.getElementById("playPauseBtn"),
+        playPauseIcon: document.getElementById("playPauseIcon"),
+        seekFwdBtn: document.getElementById("seekFwdBtn"),
+        scrubberWrap: document.getElementById("scrubberWrap"),
+        scrubberFill: document.getElementById("scrubberFill"),
+        scrubberThumb: document.getElementById("scrubberThumb"),
+        timeDisplay: document.getElementById("timeDisplay"),
+        muteToggleBtn: document.getElementById("muteToggleBtn"),
+        muteIcon: document.getElementById("muteIcon"),
+
+        chatMessages: document.getElementById("chatMessages"),
+        chatForm: document.getElementById("chatForm"),
+        chatInput: document.getElementById("chatInput"),
+        reactionBtns: document.querySelectorAll(".reaction-btn"),
+
+        libraryModal: document.getElementById("libraryModal"),
+        refreshLibraryBtn: document.getElementById("refreshLibraryBtn"),
+        closeLibraryBtn: document.getElementById("closeLibraryBtn"),
+        presetWanBtn: document.getElementById("presetWanBtn"),
+        presetLanBtn: document.getElementById("presetLanBtn"),
+        serverUrlInput: document.getElementById("serverUrlInput"),
+        saveServerUrlBtn: document.getElementById("saveServerUrlBtn"),
+        dirNavBar: document.getElementById("dirNavBar"),
+        dirUpBtn: document.getElementById("dirUpBtn"),
+        dirPathLabel: document.getElementById("dirPathLabel"),
+        mediaList: document.getElementById("mediaList")
+      };
+
+      /* ======================================================================
+         Глобальное состояние приложения
+         ====================================================================== */
+      const state = {
+        peer: null,
+        conn: null,
+        myPeerId: null,
+        isConnected: false,
+        reconnectTimer: null,
+        connectTimeoutTimer: null,
+        heartbeatTimer: null,
+        driftSyncTimer: null,
+        lastPongAt: 0,
+
+        serverBaseUrl: loadSavedServerUrl(),
+        currentBrowseUrl: "",
+        dirHistory: [],
+
+        currentVideoUrl: "",
+        currentVideoTitle: "",
+        isApplyingRemote: false,
+        remoteLockTimer: null,
+        controlsHideTimer: null,
+        isScrubbing: false
+      };
+
+      /* ======================================================================
+         Утилиты хранения, форматирования и экранирования
+         ====================================================================== */
+      function loadSavedServerUrl() {
+        try {
+          const saved = window.localStorage.getItem(STORAGE_KEY_SERVER);
+          if (saved && saved.trim()) {
+            return normalizeServerUrl(saved.trim());
+          }
+        } catch (e) {
+          /* Игнорируем ограничения доступа к localStorage */
+        }
+        return PRESET_SERVERS[1];
+      }
+
+      function saveServerUrl(url) {
+        try {
+          window.localStorage.setItem(STORAGE_KEY_SERVER, url);
+        } catch (e) {
+          /* Игнорируем ошибку квоты или приватного режима */
+        }
+      }
+
+      function normalizeServerUrl(raw) {
+        let cleaned = raw.trim();
+        if (!cleaned) return PRESET_SERVERS[1];
+        if (!/^https?:\/\//i.test(cleaned)) {
+          cleaned = "http://" + cleaned;
+        }
+        return cleaned.replace(/\/+$/, "");
+      }
+
+      function formatTime(seconds) {
+        if (!Number.isFinite(seconds) || seconds < 0) return "00:00";
+        const total = Math.floor(seconds);
+        const h = Math.floor(total / 3600);
+        const m = Math.floor((total % 3600) / 60);
+        const s = total % 60;
+        const mm = String(m).padStart(2, "0");
+        const ss = String(s).padStart(2, "0");
+        return h > 0 ? `${h}:${mm}:${ss}` : `${mm}:${ss}`;
+      }
+
+      function getNowTimeStr() {
+        const now = new Date();
+        return `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+      }
+
+      function isVideoFileName(pathname) {
+        const clean = pathname.split("?")[0].split("#")[0].toLowerCase();
+        return VIDEO_EXTENSIONS.some((ext) => clean.endsWith(ext));
+      }
+
+      function getExtensionLabel(pathname) {
+        const clean = pathname.split("?")[0].split("#")[0];
+        const dotIdx = clean.lastIndexOf(".");
+        return dotIdx !== -1 ? clean.slice(dotIdx + 1).toUpperCase() : "VIDEO";
+      }
+
+      /* ======================================================================
+         SVG-иконки (строго минималистичные inline SVG без эмодзи)
+         ====================================================================== */
+      const SVG_ICONS = {
+        play: `<polygon points="6 4 20 12 6 20 6 4"></polygon>`,
+        pause: `<rect x="6" y="4" width="4" height="16" rx="1"></rect><rect x="14" y="4" width="4" height="16" rx="1"></rect>`,
+        volumeOn: `<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>`,
+        volumeMuted: `<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><line x1="23" y1="9" x2="17" y2="15"></line><line x1="17" y1="9" x2="23" y2="15"></line>`,
+        film: `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect><line x1="7" y1="2" x2="7" y2="22"></line><line x1="17" y1="2" x2="17" y2="22"></line><line x1="2" y1="12" x2="22" y2="12"></line></svg>`,
+        sysPlay: `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="6 4 20 12 6 20 6 4"></polygon></svg>`,
+        sysPause: `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16" rx="1"></rect><rect x="14" y="4" width="4" height="16" rx="1"></rect></svg>`,
+        sysSeek: `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="13 17 18 12 13 7"></polyline><polyline points="6 17 11 12 6 7"></polyline></svg>`,
+        sysLink: `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>`,
+        folder: `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>`,
+        fileVideo: `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline><polygon points="10 12 16 15 10 18 10 12"></polygon></svg>`
+      };
+
+      const REACTION_SVGS = {
+        heart: {
+          color: "#f38ba8",
+          svg: `<svg width="20" height="20" viewBox="0 0 24 24" fill="rgba(243,139,168,0.28)" stroke="#f38ba8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"></path></svg>`
+        },
+        flame: {
+          color: "#fab387",
+          svg: `<svg width="20" height="20" viewBox="0 0 24 24" fill="rgba(250,179,135,0.28)" stroke="#fab387" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"></path></svg>`
+        },
+        smile: {
+          color: "#f9e2af",
+          svg: `<svg width="20" height="20" viewBox="0 0 24 24" fill="rgba(249,226,175,0.22)" stroke="#f9e2af" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M8 14s1.5 2 4 2 4-2 4-2"></path><line x1="9" y1="9" x2="9.01" y2="9"></line><line x1="15" y1="9" x2="15.01" y2="9"></line></svg>`
+        },
+        sparkles: {
+          color: "#cba6f7",
+          svg: `<svg width="20" height="20" viewBox="0 0 24 24" fill="rgba(203,166,247,0.28)" stroke="#cba6f7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"></path><path d="M5 3v4"></path><path d="M19 17v4"></path></svg>`
+        },
+        "thumbs-up": {
+          color: "#a6e3a1",
+          svg: `<svg width="20" height="20" viewBox="0 0 24 24" fill="rgba(166,227,161,0.25)" stroke="#a6e3a1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 10v12"></path><path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2h0a3.13 3.13 0 0 1 3 3.88Z"></path></svg>`
+        },
+        zap: {
+          color: "#89b4fa",
+          svg: `<svg width="20" height="20" viewBox="0 0 24 24" fill="rgba(137,180,250,0.28)" stroke="#89b4fa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>`
+        }
+      };
+
+      /* ======================================================================
+         Логика чата, системных уведомлений и плавающих SVG-реакций
+         ====================================================================== */
+      function appendChatMessage(text, isSelf) {
+        const row = document.createElement("div");
+        row.className = `msg-row ${isSelf ? "self" : "peer"}`;
+
+        const bubble = document.createElement("div");
+        bubble.className = "msg-bubble";
+        bubble.textContent = text;
+
+        const time = document.createElement("span");
+        time.className = "msg-time";
+        time.textContent = getNowTimeStr();
+
+        row.appendChild(bubble);
+        row.appendChild(time);
+        els.chatMessages.appendChild(row);
+        scrollChatToBottom();
+      }
+
+      function appendSystemNotice(iconHtml, text) {
+        const pill = document.createElement("div");
+        pill.className = "sys-pill";
+        pill.innerHTML = iconHtml;
+
+        const label = document.createElement("span");
+        label.textContent = text;
+        pill.appendChild(label);
+
+        els.chatMessages.appendChild(pill);
+        scrollChatToBottom();
+      }
+
+      function scrollChatToBottom() {
+        requestAnimationFrame(() => {
+          els.chatMessages.scrollTop = els.chatMessages.scrollHeight;
+        });
+      }
+
+      function spawnFloatingReaction(reactionKey) {
+        const item = REACTION_SVGS[reactionKey] || REACTION_SVGS.heart;
+        const el = document.createElement("div");
+        el.className = "floating-reaction";
+        el.innerHTML = item.svg;
+
+        // Случайная горизонтальная позиция и лёгкий дрейф полёта
+        const startLeftPct = 14 + Math.random() * 72;
+        const driftMid = Math.round((Math.random() - 0.5) * 34);
+        const driftEnd = Math.round((Math.random() - 0.5) * 54);
+        const rotMid = Math.round((Math.random() - 0.5) * 24);
+        const rotEnd = Math.round((Math.random() - 0.5) * 36);
+        const duration = (1.9 + Math.random() * 0.65).toFixed(2);
+
+        el.style.left = `${startLeftPct}%`;
+        el.style.borderColor = `${item.color}44`;
+        el.style.setProperty("--drift-mid", `${driftMid}px`);
+        el.style.setProperty("--drift-end", `${driftEnd}px`);
+        el.style.setProperty("--rot-mid", `${rotMid}deg`);
+        el.style.setProperty("--rot-end", `${rotEnd}deg`);
+        el.style.setProperty("--dur", `${duration}s`);
+
+        els.floatingLayer.appendChild(el);
+        el.addEventListener("animationend", () => el.remove(), { once: true });
+      }
+
+      /* ======================================================================
+         Автоподключение P2P без комнат и кодов (PeerJS 1.5.4)
+         ====================================================================== */
+      function updateP2PIndicator() {
+        const slot = state.myPeerId === PEER_ID_PRIMARY
+          ? "1"
+          : state.myPeerId === PEER_ID_SECONDARY
+            ? "2"
+            : "-";
+
+        els.p2pSlotBadge.textContent = slot;
+
+        if (state.isConnected) {
+          els.p2pStatusPill.classList.remove("connecting");
+          els.p2pStatusPill.classList.add("connected");
+          els.p2pStatusText.textContent = "Онлайн";
+        } else {
+          els.p2pStatusPill.classList.remove("connected");
+          els.p2pStatusPill.classList.add("connecting");
+          els.p2pStatusText.textContent = "Поиск";
+        }
+      }
+
+      function clearP2PTimers() {
+        clearTimeout(state.reconnectTimer);
+        clearTimeout(state.connectTimeoutTimer);
+        clearInterval(state.heartbeatTimer);
+      }
+
+      function initP2P(preferredId = PEER_ID_PRIMARY) {
+        clearP2PTimers();
+
+        if (state.conn) {
+          try { state.conn.close(); } catch (e) {}
+          state.conn = null;
+        }
+        if (state.peer) {
+          try { state.peer.destroy(); } catch (e) {}
+          state.peer = null;
+        }
+
+        state.isConnected = false;
+        state.myPeerId = null;
+        updateP2PIndicator();
+
+        if (typeof Peer === "undefined") {
+          state.reconnectTimer = setTimeout(() => initP2P(PEER_ID_PRIMARY), 2500);
+          return;
+        }
+
+        const peer = new Peer(preferredId, {
+          debug: 0,
+          config: {
+            iceServers: [
+              { urls: "stun:stun.l.google.com:19302" },
+              { urls: "stun:stun1.l.google.com:19302" }
+            ]
+          }
+        });
+
+        state.peer = peer;
+
+        peer.on("open", (assignedId) => {
+          if (state.peer !== peer) return;
+          state.myPeerId = assignedId;
+          updateP2PIndicator();
+
+          // Второй участник сразу открывает DataChannel к первому
+          if (assignedId === PEER_ID_SECONDARY) {
+            connectToPrimaryPeer();
+          }
+        });
+
+        peer.on("connection", (incomingConn) => {
+          if (state.peer !== peer) return;
+          bindDataChannel(incomingConn);
+        });
+
+        peer.on("disconnected", () => {
+          if (state.peer !== peer) return;
+          state.reconnectTimer = setTimeout(() => {
+            if (state.peer === peer && !peer.destroyed) {
+              try {
+                peer.reconnect();
+              } catch (e) {
+                initP2P(PEER_ID_PRIMARY);
+              }
+            }
+          }, 1500);
+        });
+
+        peer.on("error", (err) => {
+          if (state.peer !== peer) return;
+          const errType = err && err.type ? err.type : "";
+
+          // Если ami-watch-1 уже занят — автоматически становимся ami-watch-2
+          if (errType === "unavailable-id" && preferredId === PEER_ID_PRIMARY) {
+            initP2P(PEER_ID_SECONDARY);
+            return;
+          }
+
+          // Если первый узел ещё не зарегистрировался — повторяем попытку подключения
+          if (errType === "peer-unavailable" && state.myPeerId === PEER_ID_SECONDARY) {
+            clearTimeout(state.reconnectTimer);
+            state.reconnectTimer = setTimeout(connectToPrimaryPeer, 1800);
+            return;
+          }
+
+          // При временной блокировке обоих ID перезапускаем цикл
+          clearTimeout(state.reconnectTimer);
+          state.reconnectTimer = setTimeout(() => initP2P(PEER_ID_PRIMARY), 2500);
+        });
+      }
+
+      function connectToPrimaryPeer() {
+        const peer = state.peer;
+        if (!peer || peer.destroyed || peer.disconnected || state.isConnected) return;
+
+        clearTimeout(state.connectTimeoutTimer);
+
+        if (state.conn && !state.conn.open) {
+          try { state.conn.close(); } catch (e) {}
+        }
+
+        const outgoingConn = peer.connect(PEER_ID_PRIMARY, { reliable: true });
+        bindDataChannel(outgoingConn);
+
+        // Таймаут попытки соединения для быстрого автореконнекта
+        state.connectTimeoutTimer = setTimeout(() => {
+          if (!state.isConnected && state.myPeerId === PEER_ID_SECONDARY) {
+            try { outgoingConn.close(); } catch (e) {}
+            connectToPrimaryPeer();
+          }
+        }, 4000);
+      }
+
+      function bindDataChannel(dataConn) {
+        if (!dataConn) return;
+
+        if (state.conn && state.conn !== dataConn && state.conn.open) {
+          try { state.conn.close(); } catch (e) {}
+        }
+
+        state.conn = dataConn;
+
+        dataConn.on("open", () => {
+          if (state.conn !== dataConn) return;
+          clearTimeout(state.connectTimeoutTimer);
+          clearTimeout(state.reconnectTimer);
+
+          const wasDisconnected = !state.isConnected;
+          state.isConnected = true;
+          state.lastPongAt = Date.now();
+          updateP2PIndicator();
+
+          if (wasDisconnected) {
+            appendSystemNotice(SVG_ICONS.sysLink, "Собеседник подключился");
+          }
+
+          startHeartbeat();
+
+          // Если у нас уже выбрано видео, передаём актуальное состояние новому участнику
+          if (state.currentVideoUrl) {
+            sendPeerPacket({
+              type: "sync-state",
+              url: state.currentVideoUrl,
+              title: state.currentVideoTitle,
+              time: els.video.currentTime || 0,
+              paused: els.video.paused
+            });
+          }
+        });
+
+        dataConn.on("data", (packet) => {
+          if (state.conn !== dataConn) return;
+          handleIncomingPacket(packet);
+        });
+
+        dataConn.on("close", () => {
+          if (state.conn !== dataConn) return;
+          handleConnectionLost();
+        });
+
+        dataConn.on("error", () => {
+          if (state.conn !== dataConn) return;
+          handleConnectionLost();
+        });
+      }
+
+      function handleConnectionLost() {
+        clearInterval(state.heartbeatTimer);
+        clearTimeout(state.connectTimeoutTimer);
+
+        if (state.isConnected) {
+          state.isConnected = false;
+          updateP2PIndicator();
+          appendSystemNotice(SVG_ICONS.sysLink, "Связь прервана, переподключение...");
+        } else {
+          updateP2PIndicator();
+        }
+
+        if (state.myPeerId === PEER_ID_SECONDARY) {
+          clearTimeout(state.reconnectTimer);
+          state.reconnectTimer = setTimeout(connectToPrimaryPeer, 1500);
+        }
+      }
+
+      function startHeartbeat() {
+        clearInterval(state.heartbeatTimer);
+        state.heartbeatTimer = setInterval(() => {
+          if (!state.isConnected || !state.conn || !state.conn.open) return;
+
+          if (Date.now() - state.lastPongAt > 12000) {
+            try { state.conn.close(); } catch (e) {}
+            handleConnectionLost();
+            return;
+          }
+
+          sendPeerPacket({ type: "ping" });
+        }, 4000);
+      }
+
+      function sendPeerPacket(payload) {
+        if (state.conn && state.conn.open) {
+          try {
+            state.conn.send(payload);
+          } catch (e) {
+            /* Игнорируем ошибку отправки при разрыве канала */
+          }
+        }
+      }
+
+      /* ======================================================================
+         Синхронный видеоплеер с защитой от бесконечного цикла событий
+         ====================================================================== */
+      function lockRemoteSync(durationMs = 450) {
+        state.isApplyingRemote = true;
+        clearTimeout(state.remoteLockTimer);
+        state.remoteLockTimer = setTimeout(() => {
+          state.isApplyingRemote = false;
+        }, durationMs);
+      }
+
+      /**
+       * Если оба участника выбрали разные пресеты одного домашнего сервера
+       * (например, локальный 192.168.1.107:8844 и внешний 109.226.123.162:8844),
+       * подставляем активный адрес текущего пользователя для прямой потоковой загрузки.
+       */
+      function resolvePlayableUrl(incomingUrl) {
+        try {
+          const parsed = new URL(incomingUrl);
+          const incomingOrigin = parsed.origin;
+          if (PRESET_SERVERS.includes(incomingOrigin) && PRESET_SERVERS.includes(state.serverBaseUrl)) {
+            return state.serverBaseUrl + parsed.pathname + parsed.search;
+          }
+        } catch (e) {
+          /* Возвращаем исходный URL */
+        }
+        return incomingUrl;
+      }
+
+      function loadVideoSource(url, title, isLocalInitiator) {
+        const effectiveUrl = isLocalInitiator ? url : resolvePlayableUrl(url);
+        const cleanTitle = title || decodeURIComponent(effectiveUrl.split("/").pop() || "Видео");
+
+        state.currentVideoUrl = effectiveUrl;
+        state.currentVideoTitle = cleanTitle;
+
+        els.videoTitleChip.textContent = cleanTitle;
+        els.playerEmpty.classList.add("hidden");
+        showControlsTemporarily();
+
+        if (!isLocalInitiator) {
+          lockRemoteSync(700);
+        }
+
+        els.video.src = effectiveUrl;
+        els.video.load();
+        updatePlayPauseUI();
+        updateTimelineUI();
+
+        appendSystemNotice(SVG_ICONS.film, `Выбрано: ${cleanTitle}`);
+
+        if (isLocalInitiator) {
+          sendPeerPacket({
+            type: "load",
+            url: effectiveUrl,
+            title: cleanTitle
+          });
+        }
+      }
+
+      async function safePlayVideo() {
+        try {
+          await els.video.play();
+          els.unmuteBadge.classList.remove("visible");
+        } catch (err) {
+          // Если WebView запретил автовоспроизведение со звуком без тапа — включаем без звука
+          els.video.muted = true;
+          updateMuteUI();
+          els.unmuteBadge.classList.add("visible");
+          try {
+            await els.video.play();
+          } catch (e) {
+            /* Ожидаем ручного запуска */
+          }
+        }
+        updatePlayPauseUI();
+      }
+
+      function alignVideoTimestamp(targetTime) {
+        if (!Number.isFinite(targetTime) || targetTime < 0) return;
+        const current = els.video.currentTime || 0;
+        if (Math.abs(current - targetTime) > DRIFT_THRESHOLD_SEC) {
+          lockRemoteSync(500);
+          try {
+            els.video.currentTime = targetTime;
+          } catch (e) {
+            /* Метаданные ещё загружаются */
+          }
+        }
+      }
+
+      function handleIncomingPacket(packet) {
+        if (!packet || typeof packet !== "object") return;
+
+        switch (packet.type) {
+          case "ping":
+            sendPeerPacket({ type: "pong" });
+            break;
+
+          case "pong":
+            state.lastPongAt = Date.now();
+            break;
+
+          case "chat":
+            if (typeof packet.text === "string" && packet.text.trim()) {
+              appendChatMessage(packet.text.trim(), false);
+            }
+            break;
+
+          case "reaction":
+            if (packet.key && REACTION_SVGS[packet.key]) {
+              spawnFloatingReaction(packet.key);
+            }
+            break;
+
+          case "load":
+            if (packet.url) {
+              loadVideoSource(packet.url, packet.title, false);
+            }
+            break;
+
+          case "play":
+            lockRemoteSync(500);
+            alignVideoTimestamp(packet.time);
+            safePlayVideo();
+            appendSystemNotice(SVG_ICONS.sysPlay, `Пуск · ${formatTime(packet.time)}`);
+            break;
+
+          case "pause":
+            lockRemoteSync(500);
+            els.video.pause();
+            alignVideoTimestamp(packet.time);
+            updatePlayPauseUI();
+            appendSystemNotice(SVG_ICONS.sysPause, `Пауза · ${formatTime(packet.time)}`);
+            break;
+
+          case "seek":
+            lockRemoteSync(500);
+            if (Number.isFinite(packet.time)) {
+              els.video.currentTime = packet.time;
+              updateTimelineUI();
+              appendSystemNotice(SVG_ICONS.sysSeek, `Перемотка · ${formatTime(packet.time)}`);
+            }
+            break;
+
+          case "time-sync":
+            // Периодическая проверка рассинхрона (> 0.7 сек)
+            if (state.currentVideoUrl && els.video.readyState >= 2) {
+              alignVideoTimestamp(packet.time);
+              if (!packet.paused && els.video.paused) {
+                lockRemoteSync(500);
+                safePlayVideo();
+              } else if (packet.paused && !els.video.paused) {
+                lockRemoteSync(500);
+                els.video.pause();
+                updatePlayPauseUI();
+              }
+            }
+            break;
+
+          case "sync-state":
+            // Начальная синхронизация при входе второго участника
+            if (packet.url && packet.url !== state.currentVideoUrl) {
+              loadVideoSource(packet.url, packet.title, false);
+              const onMetaReady = () => {
+                lockRemoteSync(600);
+                if (Number.isFinite(packet.time)) {
+                  els.video.currentTime = packet.time;
+                }
+                if (!packet.paused) {
+                  safePlayVideo();
+                }
+              };
+              els.video.addEventListener("loadedmetadata", onMetaReady, { once: true });
+            } else if (packet.url) {
+              alignVideoTimestamp(packet.time);
+              if (!packet.paused && els.video.paused) {
+                lockRemoteSync(500);
+                safePlayVideo();
+              }
+            }
+            break;
+        }
+      }
+
+      /* События HTML5 <video> от локального пользователя */
+      els.video.addEventListener("play", () => {
+        updatePlayPauseUI();
+        scheduleControlsAutoHide();
+        if (state.isApplyingRemote) return;
+
+        const t = els.video.currentTime || 0;
+        sendPeerPacket({ type: "play", time: t });
+        appendSystemNotice(SVG_ICONS.sysPlay, `Пуск · ${formatTime(t)}`);
+      });
+
+      els.video.addEventListener("pause", () => {
+        updatePlayPauseUI();
+        showControlsTemporarily(false);
+        if (state.isApplyingRemote || els.video.seeking) return;
+
+        const t = els.video.currentTime || 0;
+        sendPeerPacket({ type: "pause", time: t });
+        appendSystemNotice(SVG_ICONS.sysPause, `Пауза · ${formatTime(t)}`);
+      });
+
+      els.video.addEventListener("seeked", () => {
+        updateTimelineUI();
+        if (state.isApplyingRemote) return;
+
+        const t = els.video.currentTime || 0;
+        sendPeerPacket({ type: "seek", time: t });
+        appendSystemNotice(SVG_ICONS.sysSeek, `Перемотка · ${formatTime(t)}`);
+      });
+
+      els.video.addEventListener("timeupdate", () => {
+        if (!state.isScrubbing) {
+          updateTimelineUI();
+        }
+      });
+
+      els.video.addEventListener("loadedmetadata", updateTimelineUI);
+
+      /* Фоновый контроль рассинхрона каждые 2 секунды во время воспроизведения */
+      state.driftSyncTimer = setInterval(() => {
+        if (!state.isConnected || !state.currentVideoUrl) return;
+        if (els.video.paused || els.video.seeking || els.video.readyState < 2) return;
+
+        sendPeerPacket({
+          type: "time-sync",
+          time: els.video.currentTime || 0,
+          paused: els.video.paused
+        });
+      }, 2000);
+
+      /* ======================================================================
+         Управление UI видеоплеера (кастомные сенсорные контролы)
+         ====================================================================== */
+      function updatePlayPauseUI() {
+        els.playPauseIcon.innerHTML = els.video.paused ? SVG_ICONS.play : SVG_ICONS.pause;
+      }
+
+      function updateMuteUI() {
+        els.muteIcon.innerHTML = els.video.muted ? SVG_ICONS.volumeMuted : SVG_ICONS.volumeOn;
+      }
+
+      function updateTimelineUI() {
+        const duration = els.video.duration;
+        const current = els.video.currentTime || 0;
+        const pct = Number.isFinite(duration) && duration > 0
+          ? Math.min(100, Math.max(0, (current / duration) * 100))
+          : 0;
+
+        els.scrubberFill.style.width = `${pct}%`;
+        els.scrubberThumb.style.left = `${pct}%`;
+        els.timeDisplay.textContent = `${formatTime(current)} / ${formatTime(duration)}`;
+      }
+
+      function showControlsTemporarily(autoHide = true) {
+        if (!state.currentVideoUrl) return;
+        els.playerControls.classList.remove("hidden-ui");
+        clearTimeout(state.controlsHideTimer);
+        if (autoHide && !els.video.paused) {
+          scheduleControlsAutoHide();
+        }
+      }
+
+      function scheduleControlsAutoHide() {
+        clearTimeout(state.controlsHideTimer);
+        state.controlsHideTimer = setTimeout(() => {
+          if (!els.video.paused && !state.isScrubbing) {
+            els.playerControls.classList.add("hidden-ui");
+          }
+        }, 3000);
+      }
+
+      els.playerWrapper.addEventListener("click", (e) => {
+        if (!state.currentVideoUrl) return;
+        if (e.target.closest("button") || e.target.closest("#scrubberWrap")) return;
+
+        if (els.playerControls.classList.contains("hidden-ui")) {
+          showControlsTemporarily(true);
+        } else {
+          els.playerControls.classList.add("hidden-ui");
+        }
+      });
+
+      els.playPauseBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        if (!state.currentVideoUrl) return;
+        if (els.video.paused) {
+          safePlayVideo();
+        } else {
+          els.video.pause();
+        }
+      });
+
+      els.seekBackBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        if (!state.currentVideoUrl) return;
+        els.video.currentTime = Math.max(0, (els.video.currentTime || 0) - 10);
+        showControlsTemporarily(true);
+      });
+
+      els.seekFwdBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        if (!state.currentVideoUrl) return;
+        const maxT = Number.isFinite(els.video.duration) ? els.video.duration : Infinity;
+        els.video.currentTime = Math.min(maxT, (els.video.currentTime || 0) + 10);
+        showControlsTemporarily(true);
+      });
+
+      els.muteToggleBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        els.video.muted = !els.video.muted;
+        if (!els.video.muted) {
+          els.unmuteBadge.classList.remove("visible");
+        }
+        updateMuteUI();
+        showControlsTemporarily(true);
+      });
+
+      els.unmuteBadge.addEventListener("click", (e) => {
+        e.stopPropagation();
+        els.video.muted = false;
+        els.unmuteBadge.classList.remove("visible");
+        updateMuteUI();
+      });
+
+      els.fullscreenBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const isFs = document.fullscreenElement || document.webkitFullscreenElement;
+        if (!isFs) {
+          if (els.playerWrapper.requestFullscreen) {
+            els.playerWrapper.requestFullscreen().catch(() => {});
+          } else if (els.video.webkitEnterFullscreen) {
+            els.video.webkitEnterFullscreen();
+          }
+        } else {
+          if (document.exitFullscreen) {
+            document.exitFullscreen().catch(() => {});
+          }
+        }
+      });
+
+      /* Сенсорная и мышиная перемотка по таймлайну */
+      function scrubToClientX(clientX) {
+        const rect = els.scrubberWrap.getBoundingClientRect();
+        const ratio = Math.min(1, Math.max(0, (clientX - rect.left) / rect.width));
+        els.scrubberFill.style.width = `${ratio * 100}%`;
+        els.scrubberThumb.style.left = `${ratio * 100}%`;
+
+        if (Number.isFinite(els.video.duration) && els.video.duration > 0) {
+          const target = ratio * els.video.duration;
+          els.timeDisplay.textContent = `${formatTime(target)} / ${formatTime(els.video.duration)}`;
+          return target;
+        }
+        return null;
+      }
+
+      els.scrubberWrap.addEventListener("pointerdown", (e) => {
+        e.stopPropagation();
+        if (!Number.isFinite(els.video.duration) || els.video.duration <= 0) return;
+        state.isScrubbing = true;
+        els.scrubberWrap.setPointerCapture(e.pointerId);
+        scrubToClientX(e.clientX);
+        showControlsTemporarily(false);
+      });
+
+      els.scrubberWrap.addEventListener("pointermove", (e) => {
+        if (!state.isScrubbing) return;
+        scrubToClientX(e.clientX);
+      });
+
+      els.scrubberWrap.addEventListener("pointerup", (e) => {
+        if (!state.isScrubbing) return;
+        state.isScrubbing = false;
+        const target = scrubToClientX(e.clientX);
+        if (target !== null) {
+          els.video.currentTime = target;
+        }
+        scheduleControlsAutoHide();
+      });
+
+      /* ======================================================================
+         Медиатека: парсер HTML-листинга домашнего сервера
+         ====================================================================== */
+      function syncServerControlsUI() {
+        els.serverUrlInput.value = state.serverBaseUrl;
+        els.presetWanBtn.classList.toggle("active", state.serverBaseUrl === PRESET_SERVERS[0]);
+        els.presetLanBtn.classList.toggle("active", state.serverBaseUrl === PRESET_SERVERS[1]);
+      }
+
+      function openLibraryModal() {
+        syncServerControlsUI();
+        els.libraryModal.classList.add("open");
+        const startUrl = state.currentBrowseUrl || `${state.serverBaseUrl}/`;
+        fetchDirectoryListing(startUrl);
+      }
+
+      function closeLibraryModal() {
+        els.libraryModal.classList.remove("open");
+      }
+
+      function updateDirNavigationUI(url) {
+        try {
+          const parsed = new URL(url);
+          const path = decodeURIComponent(parsed.pathname || "/");
+          els.dirPathLabel.textContent = path;
+          els.dirNavBar.classList.toggle("visible", state.dirHistory.length > 0 || path !== "/");
+        } catch (e) {
+          els.dirNavBar.classList.remove("visible");
+        }
+      }
+
+      async function fetchDirectoryListing(targetUrl) {
+        // Если пользователь ввёл прямую ссылку на видеофайл — загружаем сразу
+        if (isVideoFileName(targetUrl)) {
+          const fileName = decodeURIComponent(targetUrl.split("/").pop().split("?")[0]);
+          closeLibraryModal();
+          loadVideoSource(targetUrl, fileName, true);
+          return;
+        }
+
+        const dirUrl = targetUrl.endsWith("/") ? targetUrl : `${targetUrl}/`;
+        state.currentBrowseUrl = dirUrl;
+        updateDirNavigationUI(dirUrl);
+
+        els.mediaList.innerHTML = `
+          <div class="media-state-box">
+            <svg class="spin" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#cba6f7" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 12a9 9 0 1 1-6.219-8.56"></path>
+            </svg>
+            <span>Загрузка списка...</span>
+          </div>
+        `;
+
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 8000);
+          const response = await fetch(dirUrl, { signal: controller.signal });
+          clearTimeout(timeoutId);
+
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+          }
+
+          const html = await response.text();
+          const entries = parseDirectoryHtml(html, dirUrl);
+          renderMediaEntries(entries);
+        } catch (err) {
+          els.mediaList.innerHTML = `
+            <div class="media-state-box">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#f38ba8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="8" x2="12" y2="12"></line>
+                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+              </svg>
+              <span>Сервер недоступен (${err.message || "ошибка сети"})</span>
+            </div>
+          `;
+        }
+      }
+
+      /**
+       * Извлекает папки и видеофайлы (.mp4, .webm, .mkv, .mov)
+       * из стандартного HTML-листинга HTTP-сервера.
+       */
+      function parseDirectoryHtml(htmlString, baseDirUrl) {
+        const doc = new DOMParser().parseFromString(htmlString, "text/html");
+        const anchors = Array.from(doc.querySelectorAll("a[href]"));
+        const baseObj = new URL(baseDirUrl);
+        const seen = new Set();
+        const dirs = [];
+        const videos = [];
+
+        for (const a of anchors) {
+          const rawHref = (a.getAttribute("href") || "").trim();
+          if (
+            !rawHref ||
+            rawHref.startsWith("#") ||
+            rawHref.startsWith("?") ||
+            rawHref.startsWith("mailto:") ||
+            rawHref.startsWith("javascript:") ||
+            rawHref === "../" ||
+            rawHref === "./" ||
+            rawHref === ".."
+          ) {
+            continue;
+          }
+
+          let resolved;
+          try {
+            resolved = new URL(rawHref, baseObj);
+          } catch (e) {
+            continue;
+          }
+
+          // Отсекаем ссылки на родительские директории выше текущей
+          if (
+            resolved.origin === baseObj.origin &&
+            resolved.pathname.length < baseObj.pathname.length &&
+            baseObj.pathname.startsWith(resolved.pathname)
+          ) {
+            continue;
+          }
+
+          const fullHref = resolved.href;
+          if (seen.has(fullHref)) continue;
+          seen.add(fullHref);
+
+          const pathSegments = resolved.pathname.split("/").filter(Boolean);
+          const rawLastSegment = pathSegments[pathSegments.length - 1] || "";
+          let displayName = rawLastSegment;
+          try {
+            displayName = decodeURIComponent(rawLastSegment);
+          } catch (e) {
+            displayName = rawLastSegment;
+          }
+
+          if (resolved.pathname.endsWith("/")) {
+            if (!displayName) continue;
+            dirs.push({
+              type: "dir",
+              url: fullHref,
+              name: displayName
+            });
+          } else if (isVideoFileName(resolved.pathname)) {
+            videos.push({
+              type: "video",
+              url: fullHref,
+              name: displayName || a.textContent.trim(),
+              ext: getExtensionLabel(resolved.pathname)
+            });
+          }
+        }
+
+        const sorter = (x, y) => x.name.localeCompare(y.name, undefined, { numeric: true, sensitivity: "base" });
+        dirs.sort(sorter);
+        videos.sort(sorter);
+
+        return [...dirs, ...videos];
+      }
+
+      function renderMediaEntries(entries) {
+        if (!entries.length) {
+          els.mediaList.innerHTML = `
+            <div class="media-state-box">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#6c7086" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+              </svg>
+              <span>Видеофайлы не найдены</span>
+            </div>
+          `;
+          return;
+        }
+
+        els.mediaList.innerHTML = "";
+
+        for (const item of entries) {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = `media-item ${item.type === "dir" ? "is-dir" : ""}`;
+
+          if (item.type === "video" && state.currentVideoUrl === item.url) {
+            btn.classList.add("active-video");
+          }
+
+          const iconWrap = document.createElement("div");
+          iconWrap.className = "media-item-icon";
+          iconWrap.innerHTML = item.type === "dir" ? SVG_ICONS.folder : SVG_ICONS.fileVideo;
+
+          const nameSpan = document.createElement("span");
+          nameSpan.className = "media-item-name";
+          nameSpan.textContent = item.name;
+
+          btn.appendChild(iconWrap);
+          btn.appendChild(nameSpan);
+
+          if (item.type === "video") {
+            const extBadge = document.createElement("span");
+            extBadge.className = "media-ext-tag";
+            extBadge.textContent = item.ext;
+            btn.appendChild(extBadge);
+
+            btn.addEventListener("click", () => {
+              closeLibraryModal();
+              loadVideoSource(item.url, item.name, true);
+            });
+          } else {
+            btn.addEventListener("click", () => {
+              state.dirHistory.push(state.currentBrowseUrl);
+              fetchDirectoryListing(item.url);
+            });
+          }
+
+          els.mediaList.appendChild(btn);
+        }
+      }
+
+      /* ======================================================================
+         Обработчики UI чата, реакций и модального окна
+         ====================================================================== */
+      els.chatForm.addEventListener("submit", (e) => {
+        e.preventDefault();
+        const text = els.chatInput.value.trim();
+        if (!text) return;
+
+        els.chatInput.value = "";
+        appendChatMessage(text, true);
+        sendPeerPacket({ type: "chat", text });
+      });
+
+      els.reactionBtns.forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const key = btn.getAttribute("data-reaction");
+          if (!key) return;
+          spawnFloatingReaction(key);
+          sendPeerPacket({ type: "reaction", key });
+        });
+      });
+
+      els.p2pStatusPill.addEventListener("click", () => {
+        initP2P(PEER_ID_PRIMARY);
+      });
+
+      els.openLibraryBtn.addEventListener("click", openLibraryModal);
+      els.playerEmpty.addEventListener("click", openLibraryModal);
+      els.closeLibraryBtn.addEventListener("click", closeLibraryModal);
+
+      els.libraryModal.addEventListener("click", (e) => {
+        if (e.target === els.libraryModal) {
+          closeLibraryModal();
+        }
+      });
+
+      els.refreshLibraryBtn.addEventListener("click", () => {
+        fetchDirectoryListing(state.currentBrowseUrl || `${state.serverBaseUrl}/`);
+      });
+
+      [els.presetWanBtn, els.presetLanBtn].forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const url = normalizeServerUrl(btn.getAttribute("data-server"));
+          state.serverBaseUrl = url;
+          state.dirHistory = [];
+          saveServerUrl(url);
+          syncServerControlsUI();
+          fetchDirectoryListing(`${url}/`);
+        });
+      });
+
+      els.saveServerUrlBtn.addEventListener("click", () => {
+        const raw = els.serverUrlInput.value.trim();
+        if (!raw) return;
+
+        if (isVideoFileName(raw)) {
+          const fullUrl = /^https?:\/\//i.test(raw) ? raw : `http://${raw}`;
+          closeLibraryModal();
+          loadVideoSource(fullUrl, "", true);
+          return;
+        }
+
+        const normalized = normalizeServerUrl(raw);
+        state.serverBaseUrl = normalized;
+        state.dirHistory = [];
+        saveServerUrl(normalized);
+        syncServerControlsUI();
+        fetchDirectoryListing(`${normalized}/`);
+      });
+
+      els.serverUrlInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          els.saveServerUrlBtn.click();
+        }
+      });
+
+      els.dirUpBtn.addEventListener("click", () => {
+        if (state.dirHistory.length > 0) {
+          const prevUrl = state.dirHistory.pop();
+          fetchDirectoryListing(prevUrl);
+        } else {
+          fetchDirectoryListing(`${state.serverBaseUrl}/`);
+        }
+      });
+
+      /* ======================================================================
+         Инициализация при запуске приложения
+         ====================================================================== */
+      syncServerControlsUI();
+      initP2P(PEER_ID_PRIMARY);
+    })();
+  </script>
+</body>
+</html>
