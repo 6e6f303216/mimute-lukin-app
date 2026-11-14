@@ -931,7 +931,7 @@
     </header>
 
     <section id="playerWrapper" class="player-wrapper">
-      <video id="videoPlayer" playsinline webkit-playsinline preload="metadata"></video>
+      <video id="videoPlayer" playsinline webkit-playsinline preload="auto"></video>
       <div id="floatingReactionsLayer" class="floating-reactions-layer" aria-hidden="true"></div>
 
       <button id="unmuteBadge" class="unmute-badge" type="button">
@@ -1183,7 +1183,6 @@
       const PEER_ID_PRIMARY = "ami-watch-1";
       const PEER_ID_SECONDARY = "ami-watch-2";
 
-      /* Собственный PeerJS и TURN сервер на вашем VPS */
       const VPS_HOST = "147.45.71.33";
       const PEER_SERVER_CONFIG = {
         host: VPS_HOST,
@@ -1213,7 +1212,10 @@
       ];
       const STORAGE_KEY_SERVER = "ami_watch_server_url_v1";
       const VIDEO_EXTENSIONS = [".mp4", ".webm", ".mkv", ".mov"];
-      const DRIFT_THRESHOLD_SEC = 0.7;
+
+      /* Адаптивные пороги синхронизации для нестабильного соединения */
+      const DRIFT_THRESHOLD_SEC = 4.5;
+      const SOFT_SYNC_MIN_SEC = 0.6;
 
       const els = {
         p2pStatusPill: document.getElementById("p2pStatusPill"),
@@ -1278,6 +1280,8 @@
         isApplyingRemote: false,
         remoteLockTimer: null,
         controlsHideTimer: null,
+        bufferWaitTimer: null,
+        isBufferingPause: false,
         isScrubbing: false
       };
 
@@ -1658,7 +1662,7 @@
         }
       }
 
-      function lockRemoteSync(durationMs = 450) {
+      function lockRemoteSync(durationMs = 800) {
         state.isApplyingRemote = true;
         clearTimeout(state.remoteLockTimer);
         state.remoteLockTimer = setTimeout(() => {
@@ -1681,6 +1685,8 @@
         const effectiveUrl = isLocalInitiator ? url : resolvePlayableUrl(url);
         const cleanTitle = title || decodeURIComponent(effectiveUrl.split("/").pop() || "Видео");
 
+        clearTimeout(state.bufferWaitTimer);
+        state.isBufferingPause = false;
         state.currentVideoUrl = effectiveUrl;
         state.currentVideoTitle = cleanTitle;
 
@@ -1689,9 +1695,10 @@
         showControlsTemporarily();
 
         if (!isLocalInitiator) {
-          lockRemoteSync(700);
+          lockRemoteSync(1200);
         }
 
+        els.video.playbackRate = 1.0;
         els.video.src = effectiveUrl;
         els.video.load();
         updatePlayPauseUI();
@@ -1726,11 +1733,23 @@
       function alignVideoTimestamp(targetTime) {
         if (!Number.isFinite(targetTime) || targetTime < 0) return;
         const current = els.video.currentTime || 0;
-        if (Math.abs(current - targetTime) > DRIFT_THRESHOLD_SEC) {
-          lockRemoteSync(500);
+        const diff = targetTime - current;
+        const absDiff = Math.abs(diff);
+
+        if (absDiff > DRIFT_THRESHOLD_SEC) {
+          els.video.playbackRate = 1.0;
+          /* Блокировка снимается в событии seeked, 3.5с — страховка */
+          lockRemoteSync(3500);
           try {
             els.video.currentTime = targetTime;
-          } catch (e) {}
+          } catch (e) {
+            state.isApplyingRemote = false;
+          }
+        } else if (absDiff > SOFT_SYNC_MIN_SEC && !els.video.paused) {
+          /* Плавная подстройка скорости без сброса буфера */
+          els.video.playbackRate = diff > 0 ? 1.05 : 0.95;
+        } else if (els.video.playbackRate !== 1.0) {
+          els.video.playbackRate = 1.0;
         }
       }
 
@@ -1765,14 +1784,19 @@
             break;
 
           case "play":
-            lockRemoteSync(500);
+            clearTimeout(state.bufferWaitTimer);
+            state.isBufferingPause = false;
+            lockRemoteSync(800);
             alignVideoTimestamp(packet.time);
             safePlayVideo();
             appendSystemNotice(SVG_ICONS.sysPlay, `Пуск · ${formatTime(packet.time)}`);
             break;
 
           case "pause":
-            lockRemoteSync(500);
+            clearTimeout(state.bufferWaitTimer);
+            state.isBufferingPause = false;
+            els.video.playbackRate = 1.0;
+            lockRemoteSync(800);
             els.video.pause();
             alignVideoTimestamp(packet.time);
             updatePlayPauseUI();
@@ -1780,8 +1804,9 @@
             break;
 
           case "seek":
-            lockRemoteSync(500);
             if (Number.isFinite(packet.time)) {
+              els.video.playbackRate = 1.0;
+              lockRemoteSync(3500);
               els.video.currentTime = packet.time;
               updateTimelineUI();
               appendSystemNotice(SVG_ICONS.sysSeek, `Перемотка · ${formatTime(packet.time)}`);
@@ -1789,13 +1814,14 @@
             break;
 
           case "time-sync":
-            if (state.currentVideoUrl && els.video.readyState >= 2) {
+            if (state.currentVideoUrl && els.video.readyState >= 2 && !els.video.seeking) {
               alignVideoTimestamp(packet.time);
-              if (!packet.paused && els.video.paused) {
-                lockRemoteSync(500);
+              if (!packet.paused && els.video.paused && !state.isBufferingPause) {
+                lockRemoteSync(800);
                 safePlayVideo();
               } else if (packet.paused && !els.video.paused) {
-                lockRemoteSync(500);
+                els.video.playbackRate = 1.0;
+                lockRemoteSync(800);
                 els.video.pause();
                 updatePlayPauseUI();
               }
@@ -1806,7 +1832,7 @@
             if (packet.url && packet.url !== state.currentVideoUrl) {
               loadVideoSource(packet.url, packet.title, false);
               const onMetaReady = () => {
-                lockRemoteSync(600);
+                lockRemoteSync(3500);
                 if (Number.isFinite(packet.time)) {
                   els.video.currentTime = packet.time;
                 }
@@ -1818,7 +1844,7 @@
             } else if (packet.url) {
               alignVideoTimestamp(packet.time);
               if (!packet.paused && els.video.paused) {
-                lockRemoteSync(500);
+                lockRemoteSync(800);
                 safePlayVideo();
               }
             }
@@ -1837,6 +1863,8 @@
       });
 
       els.video.addEventListener("pause", () => {
+        clearTimeout(state.bufferWaitTimer);
+        els.video.playbackRate = 1.0;
         updatePlayPauseUI();
         showControlsTemporarily(false);
         if (state.isApplyingRemote || els.video.seeking) return;
@@ -1848,11 +1876,36 @@
 
       els.video.addEventListener("seeked", () => {
         updateTimelineUI();
-        if (state.isApplyingRemote) return;
+        if (state.isApplyingRemote) {
+          clearTimeout(state.remoteLockTimer);
+          state.isApplyingRemote = false;
+          return;
+        }
 
         const t = els.video.currentTime || 0;
         sendPeerPacket({ type: "seek", time: t });
         appendSystemNotice(SVG_ICONS.sysSeek, `Перемотка · ${formatTime(t)}`);
+      });
+
+      /* Автопауза при зависании буфера на слабом интернете */
+      els.video.addEventListener("waiting", () => {
+        if (state.isApplyingRemote || !state.currentVideoUrl || els.video.paused || els.video.seeking) return;
+        clearTimeout(state.bufferWaitTimer);
+        state.bufferWaitTimer = setTimeout(() => {
+          if (!els.video.paused && els.video.readyState < 3 && !state.isApplyingRemote) {
+            state.isBufferingPause = true;
+            els.video.pause();
+            appendSystemNotice(SVG_ICONS.sysPause, "Буферизация...");
+          }
+        }, 700);
+      });
+
+      els.video.addEventListener("canplay", () => {
+        clearTimeout(state.bufferWaitTimer);
+        if (state.isBufferingPause) {
+          state.isBufferingPause = false;
+          safePlayVideo();
+        }
       });
 
       els.video.addEventListener("timeupdate", () => {
@@ -1863,8 +1916,10 @@
 
       els.video.addEventListener("loadedmetadata", updateTimelineUI);
 
+      /* Периодическую сверку времени ведёт только первый слот (ami-watch-1) */
       state.driftSyncTimer = setInterval(() => {
         if (!state.isConnected || !state.currentVideoUrl) return;
+        if (state.myPeerId !== PEER_ID_PRIMARY) return;
         if (els.video.paused || els.video.seeking || els.video.readyState < 2) return;
 
         sendPeerPacket({
@@ -1872,7 +1927,7 @@
           time: els.video.currentTime || 0,
           paused: els.video.paused
         });
-      }, 2000);
+      }, 2500);
 
       function updatePlayPauseUI() {
         els.playPauseIcon.innerHTML = els.video.paused ? SVG_ICONS.play : SVG_ICONS.pause;
@@ -1926,6 +1981,7 @@
       els.playPauseBtn.addEventListener("click", (e) => {
         e.stopPropagation();
         if (!state.currentVideoUrl) return;
+        state.isBufferingPause = false;
         if (els.video.paused) {
           safePlayVideo();
         } else {
