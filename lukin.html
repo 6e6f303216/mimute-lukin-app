@@ -75,7 +75,6 @@
       user-select: none;
     }
 
-    /* Атмосферная мягкая подсветка фона для глубины glassmorphism */
     body::before {
       content: "";
       position: fixed;
@@ -143,7 +142,6 @@
       gap: 8px;
     }
 
-    /* Индикатор P2P связи */
     .p2p-pill {
       height: 32px;
       padding: 0 10px;
@@ -199,7 +197,6 @@
       50% { opacity: 1; transform: scale(1.15); }
     }
 
-    /* Кнопка открытия медиатеки */
     .icon-btn {
       width: 34px;
       height: 34px;
@@ -254,7 +251,6 @@
       background: #0d0d14;
     }
 
-    /* Пустое состояние плеера */
     .player-empty {
       position: absolute;
       inset: 0;
@@ -290,7 +286,6 @@
       color: var(--ctp-subtext0);
     }
 
-    /* Плашка разблокировки звука при автостарте */
     .unmute-badge {
       position: absolute;
       top: 10px;
@@ -316,7 +311,6 @@
       display: inline-flex;
     }
 
-    /* Кастомный оверлей управления плеером */
     .player-controls {
       position: absolute;
       inset: 0;
@@ -556,7 +550,6 @@
       border-radius: 999px;
     }
 
-    /* Пузыри текстовых сообщений */
     .msg-row {
       display: flex;
       flex-direction: column;
@@ -613,7 +606,6 @@
       font-variant-numeric: tabular-nums;
     }
 
-    /* Компактные системные уведомления о действиях в плеере */
     .sys-pill {
       align-self: center;
       max-width: 92%;
@@ -640,7 +632,6 @@
       text-overflow: ellipsis;
     }
 
-    /* Панель быстрых SVG-реакций */
     .reactions-bar {
       flex-shrink: 0;
       padding: 6px 12px 4px;
@@ -671,7 +662,6 @@
       background: rgba(203, 166, 247, 0.16);
     }
 
-    /* Нижняя панель ввода сообщения */
     .chat-input-bar {
       flex-shrink: 0;
       padding: 6px 12px calc(10px + var(--safe-bottom));
@@ -887,7 +877,6 @@
       transform: scale(0.96);
     }
 
-    /* Навигация по подпапкам директории */
     .dir-nav-bar {
       flex-shrink: 0;
       padding: 8px 16px;
@@ -926,7 +915,6 @@
       text-overflow: ellipsis;
     }
 
-    /* Список файлов медиатеки */
     .media-list {
       flex: 1;
       min-height: 180px;
@@ -1044,7 +1032,6 @@
     <header class="topbar">
       <div class="brand">
         <div class="brand-icon" aria-hidden="true">
-          <!-- Lucide: play-circle / sync -->
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
             <polygon points="6 4 20 12 6 20 6 4"></polygon>
           </svg>
@@ -1059,7 +1046,6 @@
         </button>
 
         <button id="openLibraryBtn" class="icon-btn accent" type="button" aria-label="Медиатека">
-          <!-- Lucide: folder-open -->
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="m6 14 1.5-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.54 6a2 2 0 0 1-1.95 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2"></path>
           </svg>
@@ -1073,10 +1059,8 @@
     <section id="playerWrapper" class="player-wrapper">
       <video id="videoPlayer" playsinline webkit-playsinline preload="metadata"></video>
 
-      <!-- Плавающие SVG-реакции поверх видео -->
       <div id="floatingReactionsLayer" class="floating-reactions-layer" aria-hidden="true"></div>
 
-      <!-- Кнопка включения звука при вынужденном muted-автоплее -->
       <button id="unmuteBadge" class="unmute-badge" type="button">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
@@ -1086,7 +1070,6 @@
         <span>Включить звук</span>
       </button>
 
-      <!-- Заглушка до выбора видео -->
       <div id="playerEmptyState" class="player-empty">
         <div class="player-empty-ring">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1099,7 +1082,6 @@
         <span class="player-empty-label">Открыть медиатеку</span>
       </div>
 
-      <!-- Сенсорный оверлей управления плеером -->
       <div id="playerControls" class="player-controls hidden-ui">
         <div class="controls-top">
           <div id="videoTitleChip" class="video-title-chip">Видео</div>
@@ -1165,7 +1147,6 @@
     <main class="chat-section">
       <div id="chatMessages" class="chat-messages"></div>
 
-      <!-- Панель быстрых плавающих SVG-реакций (строго без эмодзи) -->
       <div class="reactions-bar" aria-label="Быстрые реакции">
         <button class="reaction-btn" type="button" data-reaction="heart" aria-label="Сердце">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f38ba8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1212,7 +1193,6 @@
         </button>
       </div>
 
-      <!-- Поле ввода текста -->
       <form id="chatForm" class="chat-input-bar" autocomplete="off">
         <input
           id="chatInput"
@@ -1266,7 +1246,6 @@
         </div>
       </div>
 
-      <!-- Быстрый переключатель серверов + поле своего URL -->
       <div class="server-config">
         <div class="preset-row">
           <button
@@ -1315,7 +1294,6 @@
         </div>
       </div>
 
-      <!-- Полоса навигации по поддиректориям -->
       <div id="dirNavBar" class="dir-nav-bar">
         <button id="dirUpBtn" class="dir-up-btn" type="button">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
@@ -1327,7 +1305,6 @@
         <span id="dirPathLabel" class="dir-path-label">/</span>
       </div>
 
-      <!-- Список видеофайлов и папок -->
       <div id="mediaList" class="media-list"></div>
     </div>
   </div>
@@ -1349,6 +1326,33 @@
       const STORAGE_KEY_SERVER = "ami_watch_server_url_v1";
       const VIDEO_EXTENSIONS = [".mp4", ".webm", ".mkv", ".mov"];
       const DRIFT_THRESHOLD_SEC = 0.7;
+
+      /* STUN + публичные TURN-серверы (UDP/TCP 80/443) для пробития 4G CGNAT и фаерволов */
+      const ICE_SERVERS = [
+        { urls: "stun:stun.l.google.com:19302" },
+        { urls: "stun:stun1.l.google.com:19302" },
+        { urls: "stun:stun.relay.metered.ca:80" },
+        {
+          urls: "turn:global.relay.metered.ca:80",
+          username: "e8dd65b92f6dde431188a328",
+          credential: "287b7561784f9e20"
+        },
+        {
+          urls: "turn:global.relay.metered.ca:80?transport=tcp",
+          username: "e8dd65b92f6dde431188a328",
+          credential: "287b7561784f9e20"
+        },
+        {
+          urls: "turn:global.relay.metered.ca:443",
+          username: "e8dd65b92f6dde431188a328",
+          credential: "287b7561784f9e20"
+        },
+        {
+          urls: "turns:global.relay.metered.ca:443?transport=tcp",
+          username: "e8dd65b92f6dde431188a328",
+          credential: "287b7561784f9e20"
+        }
+      ];
 
       /* ======================================================================
          Ссылки на DOM-элементы
@@ -1404,6 +1408,7 @@
         conn: null,
         myPeerId: null,
         isConnected: false,
+        connectAttempts: 0,
         reconnectTimer: null,
         connectTimeoutTimer: null,
         heartbeatTimer: null,
@@ -1423,7 +1428,7 @@
       };
 
       /* ======================================================================
-         Утилиты хранения, форматирования и экранирования
+         Утилиты хранения и форматирования
          ====================================================================== */
       function loadSavedServerUrl() {
         try {
@@ -1431,18 +1436,14 @@
           if (saved && saved.trim()) {
             return normalizeServerUrl(saved.trim());
           }
-        } catch (e) {
-          /* Игнорируем ограничения доступа к localStorage */
-        }
+        } catch (e) {}
         return PRESET_SERVERS[1];
       }
 
       function saveServerUrl(url) {
         try {
           window.localStorage.setItem(STORAGE_KEY_SERVER, url);
-        } catch (e) {
-          /* Игнорируем ошибку квоты или приватного режима */
-        }
+        } catch (e) {}
       }
 
       function normalizeServerUrl(raw) {
@@ -1482,7 +1483,7 @@
       }
 
       /* ======================================================================
-         SVG-иконки (строго минималистичные inline SVG без эмодзи)
+         SVG-иконки
          ====================================================================== */
       const SVG_ICONS = {
         play: `<polygon points="6 4 20 12 6 20 6 4"></polygon>`,
@@ -1571,7 +1572,6 @@
         el.className = "floating-reaction";
         el.innerHTML = item.svg;
 
-        // Случайная горизонтальная позиция и лёгкий дрейф полёта
         const startLeftPct = 14 + Math.random() * 72;
         const driftMid = Math.round((Math.random() - 0.5) * 34);
         const driftEnd = Math.round((Math.random() - 0.5) * 54);
@@ -1592,7 +1592,7 @@
       }
 
       /* ======================================================================
-         Автоподключение P2P без комнат и кодов (PeerJS 1.5.4)
+         Автоподключение P2P без комнат и кодов (PeerJS 1.5.4 + TURN + JSON)
          ====================================================================== */
       function updateP2PIndicator() {
         const slot = state.myPeerId === PEER_ID_PRIMARY
@@ -1634,6 +1634,7 @@
 
         state.isConnected = false;
         state.myPeerId = null;
+        state.connectAttempts = 0;
         updateP2PIndicator();
 
         if (typeof Peer === "undefined") {
@@ -1644,10 +1645,8 @@
         const peer = new Peer(preferredId, {
           debug: 0,
           config: {
-            iceServers: [
-              { urls: "stun:stun.l.google.com:19302" },
-              { urls: "stun:stun1.l.google.com:19302" }
-            ]
+            iceServers: ICE_SERVERS,
+            iceCandidatePoolSize: 4
           }
         });
 
@@ -1658,7 +1657,6 @@
           state.myPeerId = assignedId;
           updateP2PIndicator();
 
-          // Второй участник сразу открывает DataChannel к первому
           if (assignedId === PEER_ID_SECONDARY) {
             connectToPrimaryPeer();
           }
@@ -1686,20 +1684,17 @@
           if (state.peer !== peer) return;
           const errType = err && err.type ? err.type : "";
 
-          // Если ami-watch-1 уже занят — автоматически становимся ami-watch-2
           if (errType === "unavailable-id" && preferredId === PEER_ID_PRIMARY) {
             initP2P(PEER_ID_SECONDARY);
             return;
           }
 
-          // Если первый узел ещё не зарегистрировался — повторяем попытку подключения
           if (errType === "peer-unavailable" && state.myPeerId === PEER_ID_SECONDARY) {
-            clearTimeout(state.reconnectTimer);
-            state.reconnectTimer = setTimeout(connectToPrimaryPeer, 1800);
+            // Первый узел отключился — перехватываем слот 1
+            initP2P(PEER_ID_PRIMARY);
             return;
           }
 
-          // При временной блокировке обоих ID перезапускаем цикл
           clearTimeout(state.reconnectTimer);
           state.reconnectTimer = setTimeout(() => initP2P(PEER_ID_PRIMARY), 2500);
         });
@@ -1710,21 +1705,31 @@
         if (!peer || peer.destroyed || peer.disconnected || state.isConnected) return;
 
         clearTimeout(state.connectTimeoutTimer);
+        state.connectAttempts += 1;
+
+        // Если 3 попытки подряд к ami-watch-1 не прошли — возможно это старая зависшая сессия, пробуем занять слот 1
+        if (state.connectAttempts > 3) {
+          initP2P(PEER_ID_PRIMARY);
+          return;
+        }
 
         if (state.conn && !state.conn.open) {
           try { state.conn.close(); } catch (e) {}
         }
 
-        const outgoingConn = peer.connect(PEER_ID_PRIMARY, { reliable: true });
+        // serialization: "json" критически важен для стабильной работы DataChannel в Android WebView
+        const outgoingConn = peer.connect(PEER_ID_PRIMARY, {
+          reliable: true,
+          serialization: "json"
+        });
         bindDataChannel(outgoingConn);
 
-        // Таймаут попытки соединения для быстрого автореконнекта
         state.connectTimeoutTimer = setTimeout(() => {
           if (!state.isConnected && state.myPeerId === PEER_ID_SECONDARY) {
             try { outgoingConn.close(); } catch (e) {}
             connectToPrimaryPeer();
           }
-        }, 4000);
+        }, 5000);
       }
 
       function bindDataChannel(dataConn) {
@@ -1743,6 +1748,7 @@
 
           const wasDisconnected = !state.isConnected;
           state.isConnected = true;
+          state.connectAttempts = 0;
           state.lastPongAt = Date.now();
           updateP2PIndicator();
 
@@ -1752,7 +1758,6 @@
 
           startHeartbeat();
 
-          // Если у нас уже выбрано видео, передаём актуальное состояние новому участнику
           if (state.currentVideoUrl) {
             sendPeerPacket({
               type: "sync-state",
@@ -1817,14 +1822,12 @@
         if (state.conn && state.conn.open) {
           try {
             state.conn.send(payload);
-          } catch (e) {
-            /* Игнорируем ошибку отправки при разрыве канала */
-          }
+          } catch (e) {}
         }
       }
 
       /* ======================================================================
-         Синхронный видеоплеер с защитой от бесконечного цикла событий
+         Синхронный видеоплеер
          ====================================================================== */
       function lockRemoteSync(durationMs = 450) {
         state.isApplyingRemote = true;
@@ -1834,11 +1837,6 @@
         }, durationMs);
       }
 
-      /**
-       * Если оба участника выбрали разные пресеты одного домашнего сервера
-       * (например, локальный 192.168.1.107:8844 и внешний 109.226.123.162:8844),
-       * подставляем активный адрес текущего пользователя для прямой потоковой загрузки.
-       */
       function resolvePlayableUrl(incomingUrl) {
         try {
           const parsed = new URL(incomingUrl);
@@ -1846,9 +1844,7 @@
           if (PRESET_SERVERS.includes(incomingOrigin) && PRESET_SERVERS.includes(state.serverBaseUrl)) {
             return state.serverBaseUrl + parsed.pathname + parsed.search;
           }
-        } catch (e) {
-          /* Возвращаем исходный URL */
-        }
+        } catch (e) {}
         return incomingUrl;
       }
 
@@ -1888,15 +1884,12 @@
           await els.video.play();
           els.unmuteBadge.classList.remove("visible");
         } catch (err) {
-          // Если WebView запретил автовоспроизведение со звуком без тапа — включаем без звука
           els.video.muted = true;
           updateMuteUI();
           els.unmuteBadge.classList.add("visible");
           try {
             await els.video.play();
-          } catch (e) {
-            /* Ожидаем ручного запуска */
-          }
+          } catch (e) {}
         }
         updatePlayPauseUI();
       }
@@ -1908,9 +1901,7 @@
           lockRemoteSync(500);
           try {
             els.video.currentTime = targetTime;
-          } catch (e) {
-            /* Метаданные ещё загружаются */
-          }
+          } catch (e) {}
         }
       }
 
@@ -1969,7 +1960,6 @@
             break;
 
           case "time-sync":
-            // Периодическая проверка рассинхрона (> 0.7 сек)
             if (state.currentVideoUrl && els.video.readyState >= 2) {
               alignVideoTimestamp(packet.time);
               if (!packet.paused && els.video.paused) {
@@ -1984,7 +1974,6 @@
             break;
 
           case "sync-state":
-            // Начальная синхронизация при входе второго участника
             if (packet.url && packet.url !== state.currentVideoUrl) {
               loadVideoSource(packet.url, packet.title, false);
               const onMetaReady = () => {
@@ -2008,7 +1997,6 @@
         }
       }
 
-      /* События HTML5 <video> от локального пользователя */
       els.video.addEventListener("play", () => {
         updatePlayPauseUI();
         scheduleControlsAutoHide();
@@ -2046,7 +2034,6 @@
 
       els.video.addEventListener("loadedmetadata", updateTimelineUI);
 
-      /* Фоновый контроль рассинхрона каждые 2 секунды во время воспроизведения */
       state.driftSyncTimer = setInterval(() => {
         if (!state.isConnected || !state.currentVideoUrl) return;
         if (els.video.paused || els.video.seeking || els.video.readyState < 2) return;
@@ -2059,7 +2046,7 @@
       }, 2000);
 
       /* ======================================================================
-         Управление UI видеоплеера (кастомные сенсорные контролы)
+         Управление UI видеоплеера
          ====================================================================== */
       function updatePlayPauseUI() {
         els.playPauseIcon.innerHTML = els.video.paused ? SVG_ICONS.play : SVG_ICONS.pause;
@@ -2168,7 +2155,6 @@
         }
       });
 
-      /* Сенсорная и мышиная перемотка по таймлайну */
       function scrubToClientX(clientX) {
         const rect = els.scrubberWrap.getBoundingClientRect();
         const ratio = Math.min(1, Math.max(0, (clientX - rect.left) / rect.width));
@@ -2239,7 +2225,6 @@
       }
 
       async function fetchDirectoryListing(targetUrl) {
-        // Если пользователь ввёл прямую ссылку на видеофайл — загружаем сразу
         if (isVideoFileName(targetUrl)) {
           const fileName = decodeURIComponent(targetUrl.split("/").pop().split("?")[0]);
           closeLibraryModal();
@@ -2287,10 +2272,6 @@
         }
       }
 
-      /**
-       * Извлекает папки и видеофайлы (.mp4, .webm, .mkv, .mov)
-       * из стандартного HTML-листинга HTTP-сервера.
-       */
       function parseDirectoryHtml(htmlString, baseDirUrl) {
         const doc = new DOMParser().parseFromString(htmlString, "text/html");
         const anchors = Array.from(doc.querySelectorAll("a[href]"));
@@ -2321,7 +2302,6 @@
             continue;
           }
 
-          // Отсекаем ссылки на родительские директории выше текущей
           if (
             resolved.origin === baseObj.origin &&
             resolved.pathname.length < baseObj.pathname.length &&
@@ -2506,6 +2486,20 @@
           fetchDirectoryListing(prevUrl);
         } else {
           fetchDirectoryListing(`${state.serverBaseUrl}/`);
+        }
+      });
+
+      /* Автоматическое восстановление связи при развороте приложения на телефоне */
+      document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible" && !state.isConnected) {
+          if (!state.peer || state.peer.destroyed) {
+            initP2P(PEER_ID_PRIMARY);
+          } else if (state.peer.disconnected) {
+            try { state.peer.reconnect(); } catch (e) { initP2P(PEER_ID_PRIMARY); }
+          } else if (state.myPeerId === PEER_ID_SECONDARY) {
+            state.connectAttempts = 0;
+            connectToPrimaryPeer();
+          }
         }
       });
 
