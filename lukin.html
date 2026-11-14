@@ -214,8 +214,52 @@
       max-height: 38dvh;
       background: #000000;
       border-bottom: 1px solid var(--glass-border);
+      box-shadow: 0 10px 32px rgba(0, 0, 0, 0.45);
       overflow: hidden;
       touch-action: manipulation;
+    }
+
+    /* Полноэкранный режим на весь физический экран (edge-to-edge, включая вырез камеры) */
+    html.fs-active .player-wrapper,
+    html:fullscreen .player-wrapper,
+    html:-webkit-full-screen .player-wrapper,
+    .player-wrapper:fullscreen,
+    .player-wrapper:-webkit-full-screen,
+    .player-wrapper.is-fullscreen {
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+      right: 0 !important;
+      bottom: 0 !important;
+      width: 100vw !important;
+      height: 100vh !important;
+      height: 100dvh !important;
+      max-width: none !important;
+      max-height: none !important;
+      aspect-ratio: auto !important;
+      border: none !important;
+      box-shadow: none !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      background: #000000 !important;
+      z-index: 99999 !important;
+    }
+
+    .player-wrapper::backdrop {
+      background: #000000;
+    }
+
+    video#videoPlayer {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: block;
+      background: #000000;
+      transition: object-fit 0.2s ease;
+    }
+
+    video#videoPlayer.fill-crop {
+      object-fit: cover;
     }
 
     /* Полноэкранный режим на весь физический экран (edge-to-edge, включая вырез камеры) */
@@ -448,11 +492,114 @@
     .scrubber-wrap {
       position: relative;
       width: 100%;
-      height: 22px;
+      height: 26px;
       display: flex;
       align-items: center;
       cursor: pointer;
       touch-action: none;
+    }
+
+    .scrubber-track {
+      position: relative;
+      width: 100%;
+      height: 4px;
+      border-radius: 999px;
+      background: rgba(205, 214, 244, 0.22);
+      overflow: visible;
+      transition: height 0.15s ease;
+    }
+
+    .scrubber-wrap:active .scrubber-track,
+    .scrubber-wrap.scrubbing .scrubber-track {
+      height: 6px;
+    }
+
+    .scrubber-fill {
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 0%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, var(--ctp-mauve), var(--ctp-blue));
+    }
+
+    .scrubber-thumb {
+      position: absolute;
+      top: 50%;
+      left: 0%;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #ffffff;
+      border: 2.5px solid var(--ctp-mauve);
+      transform: translate(-50%, -50%);
+      box-shadow: 0 0 10px rgba(203, 166, 247, 0.8);
+      transition: transform 0.15s ease;
+    }
+
+    .scrubber-wrap:active .scrubber-thumb,
+    .scrubber-wrap.scrubbing .scrubber-thumb {
+      transform: translate(-50%, -50%) scale(1.25);
+    }
+
+    .controls-meta-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 12px;
+      font-weight: 500;
+      font-variant-numeric: tabular-nums;
+      color: var(--ctp-subtext1);
+    }
+
+    .controls-right-btns {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .mini-ctrl-btn {
+      height: 32px;
+      min-width: 32px;
+      padding: 0 8px;
+      border-radius: 9px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(24, 24, 37, 0.66);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      color: var(--ctp-text);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      font-family: inherit;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: border-color 0.18s ease, background-color 0.18s ease, transform 0.12s ease;
+    }
+
+    .mini-ctrl-btn:active {
+      transform: scale(0.94);
+      border-color: var(--glass-border-accent);
+    }
+
+    .mini-ctrl-btn.active-mode {
+      border-color: var(--glass-border-accent);
+      background: rgba(203, 166, 247, 0.22);
+      color: var(--ctp-mauve);
+    }
+
+    .aspect-toggle-btn {
+      display: none;
+    }
+
+    html.fs-active .aspect-toggle-btn,
+    .player-wrapper:fullscreen .aspect-toggle-btn,
+    .player-wrapper:-webkit-full-screen .aspect-toggle-btn,
+    .player-wrapper.is-fullscreen .aspect-toggle-btn {
+      display: inline-flex;
     }
 
     .scrubber-track {
@@ -939,7 +1086,7 @@
     </header>
 
     <section id="playerWrapper" class="player-wrapper">
-      <video id="videoPlayer" playsinline webkit-playsinline preload="metadata"></video>
+      <video id="videoPlayer" playsinline webkit-playsinline preload="auto"></video>
 
       <div id="seekRippleLeft" class="seek-ripple left">−10 сек</div>
       <div id="seekRippleRight" class="seek-ripple right">+10 сек</div>
@@ -1011,6 +1158,15 @@
           <div class="controls-meta-row">
             <span id="timeDisplay">00:00 / 00:00</span>
             <div class="controls-right-btns">
+              <button id="aspectToggleBtn" class="mini-ctrl-btn aspect-toggle-btn" type="button" aria-label="Масштаб видео">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="5" width="18" height="14" rx="2"></rect>
+                  <path d="M9 5v14"></path>
+                  <path d="M15 5v14"></path>
+                </svg>
+                <span id="aspectLabel">16:9</span>
+              </button>
+
               <button id="muteToggleBtn" class="mini-ctrl-btn" type="button" aria-label="Звук">
                 <svg id="muteIcon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
@@ -1204,6 +1360,8 @@
         scrubberFill: document.getElementById("scrubberFill"),
         scrubberThumb: document.getElementById("scrubberThumb"),
         timeDisplay: document.getElementById("timeDisplay"),
+        aspectToggleBtn: document.getElementById("aspectToggleBtn"),
+        aspectLabel: document.getElementById("aspectLabel"),
         muteToggleBtn: document.getElementById("muteToggleBtn"),
         muteIcon: document.getElementById("muteIcon"),
 
@@ -1246,10 +1404,22 @@
         controlsHideTimer: null,
         isScrubbing: false,
         isPseudoFullscreen: false,
-        isAutoLandscapeFullscreen: false,
+        isVideoCropped: false,
+        wakeLockSentinel: null,
         lastTapTime: 0,
         singleTapTimer: null
       };
+
+      const isCapacitorNative = Boolean(
+        window.Capacitor &&
+        typeof window.Capacitor.isNativePlatform === "function" &&
+        window.Capacitor.isNativePlatform()
+      );
+
+      const isMobileDevice =
+        isCapacitorNative ||
+        navigator.maxTouchPoints > 0 ||
+        /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
 
       function loadSavedServerUrl() {
         try {
@@ -1743,6 +1913,7 @@
       els.video.addEventListener("play", () => {
         updatePlayPauseUI();
         scheduleControlsAutoHide();
+        requestScreenWakeLock();
         if (state.isApplyingRemote) return;
 
         const t = els.video.currentTime || 0;
@@ -1753,6 +1924,7 @@
       els.video.addEventListener("pause", () => {
         updatePlayPauseUI();
         showControlsTemporarily(false);
+        releaseScreenWakeLock();
         if (state.isApplyingRemote || els.video.seeking) return;
 
         const t = els.video.currentTime || 0;
@@ -1776,6 +1948,18 @@
       });
 
       els.video.addEventListener("loadedmetadata", updateTimelineUI);
+
+      els.video.addEventListener("error", () => {
+        const err = els.video.error;
+        let reason = "ошибка загрузки потока";
+        if (err) {
+          if (err.code === 2) reason = "ошибка сети при загрузке видео";
+          else if (err.code === 3) reason = "ошибка декодирования видео";
+          else if (err.code === 4) reason = "формат/кодек не поддерживается браузером или заблокирован HTTP";
+        }
+        appendSystemNotice(SVG_ICONS.film, `Не удалось воспроизвести: ${reason}`);
+        showControlsTemporarily(false);
+      });
 
       state.driftSyncTimer = setInterval(() => {
         if (!state.isConnected || !state.currentVideoUrl) return;
@@ -1867,6 +2051,13 @@
         }, 230);
       });
 
+      /* Показ контролов при движении мыши на ПК */
+      els.playerWrapper.addEventListener("mousemove", () => {
+        if (!isMobileDevice && state.currentVideoUrl) {
+          showControlsTemporarily(true);
+        }
+      });
+
       els.playPauseBtn.addEventListener("click", (e) => {
         e.stopPropagation();
         if (!state.currentVideoUrl) return;
@@ -1909,13 +2100,58 @@
         updateMuteUI();
       });
 
-      /* Полноэкранный режим для мобильных браузеров (Android Chrome / iOS Safari / автоповорот) */
+      /* Переключение масштаба кадра в полноэкранном режиме (Fit / Fill) */
+      els.aspectToggleBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        state.isVideoCropped = !state.isVideoCropped;
+        els.video.classList.toggle("fill-crop", state.isVideoCropped);
+        els.aspectToggleBtn.classList.toggle("active-mode", state.isVideoCropped);
+        els.aspectLabel.textContent = state.isVideoCropped ? "Весь экран" : "16:9";
+        showControlsTemporarily(true);
+      });
+
+      /* Блокировка засыпания дисплея во время просмотра в APK / браузере */
+      async function requestScreenWakeLock() {
+        if (!("wakeLock" in navigator) || state.wakeLockSentinel) return;
+        try {
+          state.wakeLockSentinel = await navigator.wakeLock.request("screen");
+          state.wakeLockSentinel.addEventListener("release", () => {
+            state.wakeLockSentinel = null;
+          });
+        } catch (e) {}
+      }
+
+      function releaseScreenWakeLock() {
+        if (state.wakeLockSentinel) {
+          try { state.wakeLockSentinel.release(); } catch (e) {}
+          state.wakeLockSentinel = null;
+        }
+      }
+
+      /* Управление системным StatusBar в Capacitor APK */
+      async function setCapacitorImmersive(immersive) {
+        const cap = window.Capacitor;
+        if (!cap || !cap.Plugins) return;
+
+        try {
+          if (cap.Plugins.StatusBar) {
+            if (immersive) {
+              await cap.Plugins.StatusBar.setOverlaysWebView({ overlay: true });
+              await cap.Plugins.StatusBar.hide();
+            } else {
+              await cap.Plugins.StatusBar.show();
+              await cap.Plugins.StatusBar.setBackgroundColor({ color: "#181825" });
+            }
+          }
+        } catch (e) {}
+      }
+
+      /* Полноэкранный режим для Capacitor Android APK, мобильных браузеров и ПК */
       function isAnyFullscreenActive() {
         return Boolean(
           document.fullscreenElement ||
           document.webkitFullscreenElement ||
-          state.isPseudoFullscreen ||
-          state.isAutoLandscapeFullscreen
+          state.isPseudoFullscreen
         );
       }
 
@@ -1924,27 +2160,37 @@
         document.documentElement.classList.toggle("fs-active", active);
         els.playerWrapper.classList.toggle("is-fullscreen", active);
         els.fullscreenIcon.innerHTML = active ? SVG_ICONS.fsExit : SVG_ICONS.fsEnter;
+
+        if (!active && state.isVideoCropped) {
+          state.isVideoCropped = false;
+          els.video.classList.remove("fill-crop");
+          els.aspectToggleBtn.classList.remove("active-mode");
+          els.aspectLabel.textContent = "16:9";
+        }
+
         if (els.themeColorMeta) {
           els.themeColorMeta.setAttribute("content", active ? "#000000" : "#181825");
         }
+        setCapacitorImmersive(active);
       }
 
       async function enterMobileFullscreen() {
-        const docEl = document.documentElement;
-        const requestFn = docEl.requestFullscreen || docEl.webkitRequestFullscreen;
+        const wrapper = els.playerWrapper;
+        /* В Android WebView (Capacitor) и на ПК requestFullscreen на playerWrapper
+           активирует нативный onShowCustomView — скрывает шторку, навигацию и серую зону выреза камеры */
+        const requestFn = wrapper.requestFullscreen || wrapper.webkitRequestFullscreen;
 
         if (requestFn) {
           try {
-            await requestFn.call(docEl, { navigationUI: "hide" });
+            await requestFn.call(wrapper, { navigationUI: "hide" });
           } catch (err) {
             try {
-              await requestFn.call(docEl);
+              await requestFn.call(wrapper);
             } catch (e) {
               state.isPseudoFullscreen = true;
             }
           }
         } else if (typeof els.video.webkitEnterFullscreen === "function" && els.video.readyState >= 1) {
-          /* Нативный полноэкранный плеер для iPhone Safari (скрывает строку адреса и статус-бар) */
           try {
             els.video.webkitEnterFullscreen();
             return;
@@ -1957,7 +2203,7 @@
 
         syncFullscreenUI();
 
-        if (screen.orientation && screen.orientation.lock) {
+        if (isMobileDevice && screen.orientation && screen.orientation.lock) {
           screen.orientation.lock("landscape").catch(() => {});
         }
       }
@@ -1972,10 +2218,9 @@
           }
         }
         state.isPseudoFullscreen = false;
-        state.isAutoLandscapeFullscreen = false;
         syncFullscreenUI();
 
-        if (screen.orientation && screen.orientation.unlock) {
+        if (isMobileDevice && screen.orientation && screen.orientation.unlock) {
           try {
             screen.orientation.unlock();
           } catch (e) {}
@@ -2009,23 +2254,50 @@
         syncFullscreenUI();
       });
 
-      /* Автоматическое разворачивание плеера при горизонтальном повороте телефона */
-      function handleViewportOrientation() {
-        const isLandscapePhone = window.innerWidth > window.innerHeight && window.innerHeight <= 520;
-        if (isLandscapePhone && state.currentVideoUrl && !els.libraryModal.classList.contains("open")) {
-          if (!isAnyFullscreenActive()) {
-            state.isAutoLandscapeFullscreen = true;
-            syncFullscreenUI();
-          }
-        } else if (!isLandscapePhone && state.isAutoLandscapeFullscreen) {
-          state.isAutoLandscapeFullscreen = false;
-          syncFullscreenUI();
+      /* Поддержка аппаратной кнопки «Назад» в Capacitor Android APK */
+      document.addEventListener("backbutton", (e) => {
+        if (els.libraryModal.classList.contains("open")) {
+          e.preventDefault();
+          closeLibraryModal();
+        } else if (isAnyFullscreenActive()) {
+          e.preventDefault();
+          exitMobileFullscreen();
         }
-      }
+      });
 
-      window.addEventListener("resize", handleViewportOrientation);
-      window.addEventListener("orientationchange", () => {
-        setTimeout(handleViewportOrientation, 120);
+      /* Горячие клавиши для управления видео на ПК */
+      document.addEventListener("keydown", (e) => {
+        const tag = document.activeElement && document.activeElement.tagName;
+        if (tag === "INPUT" || tag === "TEXTAREA" || els.libraryModal.classList.contains("open")) return;
+        if (!state.currentVideoUrl) return;
+
+        if (e.code === "Space") {
+          e.preventDefault();
+          if (els.video.paused) safePlayVideo();
+          else els.video.pause();
+          showControlsTemporarily(true);
+        } else if (e.code === "ArrowLeft") {
+          e.preventDefault();
+          els.video.currentTime = Math.max(0, (els.video.currentTime || 0) - 10);
+          triggerSeekRipple(-1);
+          showControlsTemporarily(true);
+        } else if (e.code === "ArrowRight") {
+          e.preventDefault();
+          const maxT = Number.isFinite(els.video.duration) ? els.video.duration : Infinity;
+          els.video.currentTime = Math.min(maxT, (els.video.currentTime || 0) + 10);
+          triggerSeekRipple(1);
+          showControlsTemporarily(true);
+        } else if (e.code === "KeyF") {
+          e.preventDefault();
+          if (!isAnyFullscreenActive()) enterMobileFullscreen();
+          else exitMobileFullscreen();
+        } else if (e.code === "KeyM") {
+          e.preventDefault();
+          els.video.muted = !els.video.muted;
+          if (!els.video.muted) els.unmuteBadge.classList.remove("visible");
+          updateMuteUI();
+          showControlsTemporarily(true);
+        }
       });
 
       function scrubToClientX(clientX) {
@@ -2046,6 +2318,7 @@
         e.stopPropagation();
         if (!Number.isFinite(els.video.duration) || els.video.duration <= 0) return;
         state.isScrubbing = true;
+        els.scrubberWrap.classList.add("scrubbing");
         els.scrubberWrap.setPointerCapture(e.pointerId);
         scrubToClientX(e.clientX);
         showControlsTemporarily(false);
@@ -2059,6 +2332,7 @@
       els.scrubberWrap.addEventListener("pointerup", (e) => {
         if (!state.isScrubbing) return;
         state.isScrubbing = false;
+        els.scrubberWrap.classList.remove("scrubbing");
         const target = scrubToClientX(e.clientX);
         if (target !== null) {
           els.video.currentTime = target;
@@ -2348,17 +2622,23 @@
       });
 
       document.addEventListener("visibilitychange", () => {
-        if (document.visibilityState === "visible" && !state.isConnected) {
-          if (!state.peer || state.peer.destroyed) {
-            initP2P(PEER_ID_PRIMARY);
-          } else if (state.peer.disconnected) {
-            try { state.peer.reconnect(); } catch (e) { initP2P(PEER_ID_PRIMARY); }
-          } else if (state.myPeerId === PEER_ID_SECONDARY) {
-            connectToPrimaryPeer();
+        if (document.visibilityState === "visible") {
+          if (!els.video.paused) {
+            requestScreenWakeLock();
+          }
+          if (!state.isConnected) {
+            if (!state.peer || state.peer.destroyed) {
+              initP2P(PEER_ID_PRIMARY);
+            } else if (state.peer.disconnected) {
+              try { state.peer.reconnect(); } catch (e) { initP2P(PEER_ID_PRIMARY); }
+            } else if (state.myPeerId === PEER_ID_SECONDARY) {
+              connectToPrimaryPeer();
+            }
           }
         }
       });
 
+      setCapacitorImmersive(false);
       syncServerControlsUI();
       initP2P(PEER_ID_PRIMARY);
     })();
